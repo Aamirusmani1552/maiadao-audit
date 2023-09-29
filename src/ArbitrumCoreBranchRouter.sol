@@ -9,6 +9,7 @@ import {IArbitrumBranchPort as IPort} from "./interfaces/IArbitrumBranchPort.sol
 
 import {CoreBranchRouter} from "./CoreBranchRouter.sol";
 
+// @audit mistake is is used twice on line 20
 /**
  * @title  Arbitrum Core Branch Router Contract
  * @author MaiaDAO
@@ -48,17 +49,20 @@ contract ArbitrumCoreBranchRouter is CoreBranchRouter {
     //////////////////////////////////////////////////////////////*/
 
     ///@inheritdoc CoreBranchRouter
+    // @audit can i add a malicious token and get back any different token
     function addLocalToken(address _underlyingAddress, GasParams calldata) external payable override {
         //Encode Data, no need to create local token since we are already in the global environment
+        // @audit will the string be decoded correctly on root chain
         bytes memory params = abi.encode(
             _underlyingAddress,
-            address(0),
+            address(0), // Address of the local token
             string.concat("Arbitrum Ulysses ", ERC20(_underlyingAddress).name()),
             string.concat("arb-u", ERC20(_underlyingAddress).symbol()),
             ERC20(_underlyingAddress).decimals()
         );
 
         // Pack FuncId
+        //@audit-info packed like this: 0x02 + loosleyPacked(params)
         bytes memory payload = abi.encodePacked(bytes1(0x02), params);
 
         //Send Cross-Chain request (System Response/Request)

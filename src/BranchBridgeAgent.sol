@@ -123,10 +123,12 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
         address _localPortAddress
     ) {
         require(_rootBridgeAgentAddress != address(0), "Root Bridge Agent Address cannot be the zero address.");
+
         require(
             _lzEndpointAddress != address(0) || _rootChainId == _localChainId,
             "Layerzero Endpoint Address cannot be the zero address."
         );
+        // @audit what if _lzEndpointAddress is not address 0 and still rootchainId == localChainId
         require(_localRouterAddress != address(0), "Local Router Address cannot be the zero address.");
         require(_localPortAddress != address(0), "Local Port Address cannot be the zero address.");
 
@@ -139,6 +141,7 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
         bridgeAgentExecutorAddress = DeployBranchBridgeAgentExecutor.deploy();
         depositNonce = 1;
 
+        // @audit-info will always be 40 bytes longs
         rootBridgeAgentPath = abi.encodePacked(_rootBridgeAgentAddress, address(this));
     }
 
@@ -158,11 +161,14 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
     }
 
     /// @inheritdoc IBranchBridgeAgent
+
+    // @audit struct not used for params. But is it in known issues?
     function getFeeEstimate(uint256 _gasLimit, uint256 _remoteBranchExecutionGas, bytes calldata _payload)
         external
         view
         returns (uint256 _fee)
     {
+        // @audit should we need to check what else it returns?
         (_fee,) = ILayerZeroEndpoint(lzEndpointAddress).estimateFees(
             rootChainId,
             address(this),
@@ -177,6 +183,8 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IBranchBridgeAgent
+    // @audit-info payload sent:
+    // 1. _addGlobalToken: 0x03 + loosleyPacked(params)
     function callOutSystem(address payable _refundee, bytes calldata _params, GasParams calldata _gParams)
         external
         payable
@@ -184,7 +192,12 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
         lock
         requiresRouter
     {
+        // @audit can this encode packing cause issue?
         //Encode Data for cross-chain call.
+        // 0 -> means system call
+        // @audit-info packed like this: 0x00 + 0x11111111 + 0x02 + loosleyPacked(params)
+        // @audit-info payload sent:
+        // 1. _addGlobalToken: 0x00 + 0x11111111 + 0x03 + loosleyPacked(params)
         bytes memory payload = abi.encodePacked(bytes1(0x00), depositNonce++, _params);
 
         //Perform Call
@@ -192,6 +205,10 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
     }
 
     /// @inheritdoc IBranchBridgeAgent
+    // @audit should be called by router only. right now anyone can call it
+    // @audit-info payload recieved:
+    // 1. addGlobalToken: 0x01 + loosleyPacked(params)
+    // 2. _addGlobalToken : 0x01 + loosleyPacked(params)
     function callOut(address payable _refundee, bytes calldata _params, GasParams calldata _gParams)
         external
         payable
@@ -199,6 +216,10 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
         lock
     {
         //Encode Data for cross-chain call.
+        // 1 -> means call with deposit
+        // @audit-info payload sent:
+        // 1. addGlobalToken: 0x01 + 0x11111111 + 0x01 + loosleyPacked(params)
+        // 2. _addGlobalToken: 0x01 + 0x11111111 + 0x01 + loosleyPacked(params)
         bytes memory payload = abi.encodePacked(bytes1(0x01), depositNonce++, _params);
 
         //Perform Call
@@ -206,6 +227,7 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
     }
 
     /// @inheritdoc IBranchBridgeAgent
+    // @audit why it is allowed that anyone can interact with it
     function callOutAndBridge(
         address payable _refundee,
         bytes calldata _params,
@@ -228,6 +250,7 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
     }
 
     /// @inheritdoc IBranchBridgeAgent
+    // @audit should there be check as well
     function callOutAndBridgeMultiple(
         address payable _refundee,
         bytes calldata _params,
@@ -408,10 +431,14 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
             }
         }
 
+        // @audit what if the token deposit lenght is less than 1
+
         // Check if payload is empty
         if (payload.length == 0) revert DepositRetryUnavailableUseCallout();
 
         // Ensure success Status
+        // @audit-info this is not checked in the beginning anywhere
+        // but does it matter. because it has been set to success already
         deposit.status = STATUS_SUCCESS;
 
         // Perform Call
@@ -491,6 +518,7 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
     }
 
     /// @inheritdoc IBranchBridgeAgent
+    // @audit _clear Token not called. is it necessary in this case as well?
     function clearTokens(bytes calldata _sParams, address _recipient)
         external
         override
@@ -498,9 +526,11 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
         returns (SettlementMultipleParams memory)
     {
         // Parse Tokens Length
+        // @audit-info first byte to token length from _sParams
         uint8 numOfAssets = uint8(bytes1(_sParams[0]));
 
         // Parse Nonce
+        // next 4 bytes to nonce from _sParams
         uint32 nonce = uint32(bytes4(_sParams[PARAMS_START:PARAMS_TKN_START]));
 
         // Initialize Arrays
@@ -510,6 +540,7 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
         uint256[] memory _deposits = new uint256[](numOfAssets);
 
         // Transfer the token to the recipient
+        // @audit no need to initialize the variable i
         for (uint256 i = 0; i < numOfAssets;) {
             // Cache common offset
             uint256 currentIterationOffset = PARAMS_START + i;
@@ -575,6 +606,10 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ILayerZeroReceiver
+    // @audit-info check for the correct lz address is already done
+    // @audit-info payload sent:
+    // 1. RootBridgeAgent::callOut: 0x00 + address(recipient) + 0x11111111 + 0x01 + 0x11111111 + 0x01 + loosleyPacked(params)
+    // 2. _addGlobalToken: 0x00 + address + 0x11111111 + 0x01 + loosleyPacked(params)
     function lzReceive(uint16, bytes calldata _srcAddress, uint64, bytes calldata _payload) public override {
         address(this).excessivelySafeCall(
             gasleft(),
@@ -595,9 +630,14 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
         // Save settlement nonce
         uint32 nonce;
 
+        // @audit-info payload sent:
+        // 1. RootBridgeAgent::callOut: 0x00 + address(recipient) + 0x11111111 + 0x01 + 0x11111111 + 0x01 + loosleyPacked(params)
+        // 2. _addGlobalToken: 0x00 + address + 0x11111111 + 0x01 + loosleyPacked(params)
+
         // DEPOSIT FLAG: 0 (No settlement)
         if (flag == 0x00) {
             // Get Settlement Nonce
+            // PARAMS_START_SIGNED = 21, PARAMS_TKN_START_SIGNED = 25
             nonce = uint32(bytes4(_payload[PARAMS_START_SIGNED:PARAMS_TKN_START_SIGNED]));
 
             //Check if tx has already been executed
@@ -605,6 +645,8 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
 
             //Try to execute the remote request
             //Flag 0 - BranchBridgeAgentExecutor(bridgeAgentExecutorAddress).executeNoSettlement(localRouterAddress, _payload)
+            // @audit-info payload sent:
+            // 1. _addGlobalToken: 0x00 + address + 0x11111111 + 0x01 + loosleyPacked(params)
             _execute(
                 nonce,
                 abi.encodeWithSelector(
@@ -709,6 +751,9 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
      *   @param _settlementNonce Identifier for nonce being executed.
      *   @param _calldata Calldata to be executed by the Branch Bridge Agent Executor Contract.
      */
+
+    // @audit-info payload sent:
+    // 1. _addGlobalToken: 0x00 + address + 0x11111111 + 0x01 + loosleyPacked(params)
     function _execute(uint256 _settlementNonce, bytes memory _calldata) private {
         //Update tx state as executed
         executionState[_settlementNonce] = STATUS_DONE;
@@ -784,6 +829,7 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
      */
     function _performFallbackCall(address payable _refundee, uint32 _settlementNonce) internal virtual {
         //Sends message to LayerZero messaging layer
+        // @audit return value not checked
         ILayerZeroEndpoint(lzEndpointAddress).send{value: address(this).balance}(
             rootChainId,
             rootBridgeAgentPath,
@@ -905,6 +951,7 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
     {
         if (_amount - _deposit > 0) {
             unchecked {
+                // @audit-info this is just minting tokens for the recipient
                 IPort(localPortAddress).bridgeIn(_recipient, _hToken, _amount - _deposit);
             }
         }

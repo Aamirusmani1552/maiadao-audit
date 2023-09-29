@@ -32,7 +32,10 @@ contract VirtualAccount is IVirtualAccount, ERC1155Receiver {
      * @param _userAddress Address of the user account.
      * @param _localPortAddress Address of the root port contract.
      */
+
+    // @audit why it is allowed that an account can deploy as many virtual accounts as they want?
     constructor(address _userAddress, address _localPortAddress) {
+        // @audit-info known issues: address zero checks not done
         userAddress = _userAddress;
         localPortAddress = _localPortAddress;
     }

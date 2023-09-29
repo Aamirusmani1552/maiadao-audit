@@ -47,6 +47,7 @@ contract ArbitrumBranchPort is BranchPort, IArbitrumBranchPort {
     //////////////////////////////////////////////////////////////*/
 
     ///@inheritdoc IArbitrumBranchPort
+    // @audit-info if we want to deposit a token to port that means it should already be in the root port
     function depositToPort(address _depositor, address _recipient, address _underlyingAddress, uint256 _deposit)
         external
         override
@@ -63,6 +64,7 @@ contract ArbitrumBranchPort is BranchPort, IArbitrumBranchPort {
         if (_globalToken == address(0)) revert UnknownGlobalToken();
 
         // Deposit Assets to Port
+        // @audit ERC20 wrapper not used
         _underlyingAddress.safeTransferFrom(_depositor, address(this), _deposit);
 
         // Request Minting of Global Token
@@ -89,8 +91,10 @@ contract ArbitrumBranchPort is BranchPort, IArbitrumBranchPort {
         // Check if the underlying token exists
         if (_underlyingAddress == address(0)) revert UnknownUnderlyingToken();
 
+        // @audit best place to show the bug for fee on transfer token
         IRootPort(_rootPortAddress).burnFromLocalBranch(_depositor, _globalAddress, _amount);
 
+        // @audit ERC20 wrapper not used
         _underlyingAddress.safeTransfer(_recipient, _amount);
     }
 
@@ -116,6 +120,8 @@ contract ArbitrumBranchPort is BranchPort, IArbitrumBranchPort {
      * @param _amount amount of the bridged assets.
      * @param _deposit amount of the underlying assets to be deposited.
      */
+
+    // @audit-info my understanding of the function is that, user will deposit some of the original token in the branch port and some in root port
     function _bridgeOut(
         address _depositor,
         address _localAddress,
@@ -125,9 +131,11 @@ contract ArbitrumBranchPort is BranchPort, IArbitrumBranchPort {
     ) internal override {
         //Store Underlying Tokens
         if (_deposit > 0) {
+            // @audit ERC20 wrapper not used
             _underlyingAddress.safeTransferFrom(_depositor, address(this), _deposit);
         }
 
+        // @audit what if _amount is 0. would the below condition revert because of underflow
         //Burn hTokens if any are being used
         if (_amount - _deposit > 0) {
             unchecked {

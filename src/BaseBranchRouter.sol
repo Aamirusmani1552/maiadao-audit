@@ -57,12 +57,14 @@ contract BaseBranchRouter is IBranchRouter, Ownable {
      * @notice Initializes the Base Branch Router.
      * @param _localBridgeAgentAddress The address of the local Bridge Agent.
      */
+
+    // @audit should it be initialized again?
     function initialize(address _localBridgeAgentAddress) external onlyOwner {
         require(_localBridgeAgentAddress != address(0), "Bridge Agent address cannot be 0");
         localBridgeAgentAddress = _localBridgeAgentAddress;
         localPortAddress = IBridgeAgent(_localBridgeAgentAddress).localPortAddress();
         bridgeAgentExecutorAddress = IBridgeAgent(_localBridgeAgentAddress).bridgeAgentExecutorAddress();
-        
+
         renounceOwnership();
     }
 
@@ -85,6 +87,7 @@ contract BaseBranchRouter is IBranchRouter, Ownable {
     }
 
     /// @inheritdoc IBranchRouter
+    // @audit should have requireRouter modifier
     function callOutAndBridge(bytes calldata _params, DepositInput calldata _dParams, GasParams calldata _gParams)
         external
         payable
@@ -164,6 +167,7 @@ contract BaseBranchRouter is IBranchRouter, Ownable {
         // Check if the local branch tokens are being spent
         if (_amount - _deposit > 0) {
             unchecked {
+                // @audit ERC20(_hToken) should be used instead of _hToken
                 _hToken.safeTransferFrom(msg.sender, address(this), _amount - _deposit);
                 ERC20(_hToken).approve(_localPortAddress, _amount - _deposit);
             }
@@ -171,6 +175,7 @@ contract BaseBranchRouter is IBranchRouter, Ownable {
 
         // Check if the underlying tokens are being spent
         if (_deposit > 0) {
+            // @audit ERC20(_token) should be used instead of _token
             _token.safeTransferFrom(msg.sender, address(this), _deposit);
             ERC20(_token).approve(_localPortAddress, _deposit);
         }
@@ -189,6 +194,7 @@ contract BaseBranchRouter is IBranchRouter, Ownable {
         uint256[] memory _amounts,
         uint256[] memory _deposits
     ) internal {
+        // @audit check for the lenghts of the arrays is not done. Now we need to check if it is one of the known issues or not.
         for (uint256 i = 0; i < _hTokens.length;) {
             _transferAndApproveToken(_hTokens[i], _tokens[i], _amounts[i], _deposits[i]);
 

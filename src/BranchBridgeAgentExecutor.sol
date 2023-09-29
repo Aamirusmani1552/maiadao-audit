@@ -50,8 +50,14 @@ contract BranchBridgeAgentExecutor is Ownable, BridgeAgentConstants {
      * @param _payload Data received from the messaging layer.
      * @dev SETTLEMENT FLAG: 0 (No settlement)
      */
+
+    // @audit-info payload sent:
+    // 1. _addGlobalToken: 0x00 + address + 0x11111111 + 0x01 + loosleyPacked(params)
     function executeNoSettlement(address _router, bytes calldata _payload) external payable onlyOwner {
         // Execute Calldata if there is code in the destination router
+        // PARAMS_TKN_START_SIGNED = 25
+        // @audit-info payload sent:
+        // 1. _addGlobalToken: 0x01 + loosleyPacked(params)
         IRouter(_router).executeNoSettlement{value: msg.value}(_payload[PARAMS_TKN_START_SIGNED:]);
     }
 

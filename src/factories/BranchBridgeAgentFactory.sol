@@ -59,6 +59,7 @@ contract BranchBridgeAgentFactory is Ownable, IBranchBridgeAgentFactory {
         address _owner
     ) {
         require(_rootBridgeAgentFactoryAddress != address(0), "Root Bridge Agent Factory Address cannot be 0");
+        // @audit why they have done that?
         require(
             _lzEndpointAddress != address(0) || _rootChainId == _localChainId,
             "Layerzero Endpoint Address cannot be the zero address."

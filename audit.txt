@@ -1,0 +1,17 @@
+-------High-----------
+1. safeTransferFrom is deprecated 
+
+-------Med------------
+
+
+-------LQAG-----------
+1. unnecessary concatenation in ERC20hTokenRoot.sol
+2. best practice for naming errors not followed
+3. separate errors in BranchBridgeAgent to make it more clear
+4. mistake in ArbitrumCoreBranchRouter natspac for the contract
+5. mistake in ICoreBranchRouter natspac at top
+6. BaseBranchRouter directly use safeTransferFrom on address rather than converting them to contract ERC20
+
+-------Anticipated----
+
+1. what if someone create a deposit with the same nonce and front run the protocol. will the first depositor loss token

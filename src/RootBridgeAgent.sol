@@ -157,6 +157,8 @@ contract RootBridgeAgent is IRootBridgeAgent, BridgeAgentConstants {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IRootBridgeAgent
+    // @audit-info payload received:
+    // 1. _addGlobalToken: 0x01 + loosleyPacked(params)
     function callOut(
         address payable _refundee,
         address _recipient,
@@ -167,6 +169,8 @@ contract RootBridgeAgent is IRootBridgeAgent, BridgeAgentConstants {
         //Encode Data for call.
         bytes memory payload = abi.encodePacked(bytes1(0x00), _recipient, settlementNonce++, _params);
 
+        // @audit-info payload sent:
+        // 1. _addGlobalToken: 0x00 + address + 0x11111111 + 0x01 + loosleyPacked(params)
         //Perform Call to clear hToken balance on destination branch chain.
         _performCall(_dstChainId, _refundee, payload, _gParams);
     }
@@ -420,6 +424,9 @@ contract RootBridgeAgent is IRootBridgeAgent, BridgeAgentConstants {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc ILayerZeroReceiver
+    // @audit-info payload recieved
+    // 1: addLocalToken: 0x00 + 0x11111111 + 0x02 + loosleyPacked(params)
+    // 2. addGlobalToken: 0x01 + 0x11111111 + 0x01 + loosleyPacked(params)
     function lzReceive(uint16 _srcChainId, bytes calldata _srcAddress, uint64, bytes calldata _payload) public {
         (bool success,) = address(this).excessivelySafeCall(
             gasleft(),
@@ -431,6 +438,7 @@ contract RootBridgeAgent is IRootBridgeAgent, BridgeAgentConstants {
     }
 
     /// @inheritdoc IRootBridgeAgent
+    // @audit make it modularized. need to check in known issues
     function lzReceiveNonBlocking(
         address _endpoint,
         uint16 _srcChainId,
@@ -441,8 +449,13 @@ contract RootBridgeAgent is IRootBridgeAgent, BridgeAgentConstants {
         uint32 nonce;
 
         // DEPOSIT FLAG: 0 (System request / response)
+        // @audit-info payload recieved
+        // 1: addLocalToken: 0x00 + 0x11111111 + 0x02 + loosleyPacked(params)
+        // 2. addGlobalToken: 0x01 + 0x11111111 + 0x01 + loosleyPacked(params)
+        // 3. callOutSystem::_addGlobalToken: 0x00 + 0x11111111 + 0x03 + loosleyPacked(params)
         if (_payload[0] == 0x00) {
             // Parse deposit nonce
+            // @audit-info PARAMS_START = 1, PARAMS_TKN_START = 5
             nonce = uint32(bytes4(_payload[PARAMS_START:PARAMS_TKN_START]));
 
             // Check if tx has already been executed
@@ -466,6 +479,7 @@ contract RootBridgeAgent is IRootBridgeAgent, BridgeAgentConstants {
             // DEPOSIT FLAG: 1 (Call without Deposit)
         } else if (_payload[0] == 0x01) {
             // Parse Deposit Nonce
+            // @audit-info PARAMS_START = 1, PARAMS_TKN_START = 5
             nonce = uint32(bytes4(_payload[PARAMS_START:PARAMS_TKN_START]));
 
             // Check if tx has already been executed
@@ -746,11 +760,15 @@ contract RootBridgeAgent is IRootBridgeAgent, BridgeAgentConstants {
      *   @param _calldata Payload of message to be executed by the Root Bridge Agent Executor Contract.
      *   @param _srcChainId Chain ID of source chain where request originates from.
      */
+
+    // @audit-info payload recieved
+    // 1: addLocalToken: 0x00 + 0x11111111 + 0x02 + loosleyPacked(params)
     function _execute(uint256 _depositNonce, bytes memory _calldata, uint16 _srcChainId) private {
         //Update tx state as executed
         executionState[_srcChainId][_depositNonce] = STATUS_DONE;
 
         //Try to execute the remote request
+        // @audit will it only hold tokens equal to the ETH balance
         (bool success,) = bridgeAgentExecutorAddress.call{value: address(this).balance}(_calldata);
 
         // No fallback is requested revert allowing for retry.
@@ -831,6 +849,7 @@ contract RootBridgeAgent is IRootBridgeAgent, BridgeAgentConstants {
 
             // Check if call to local chain
         } else {
+            // @audit would we be able to add global token to the same chain from which we sent call
             //Send Gas to Local Branch Bridge Agent
             callee.call{value: msg.value}("");
             //Execute locally

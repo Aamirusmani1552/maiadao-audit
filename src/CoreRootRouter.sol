@@ -136,6 +136,7 @@ contract CoreRootRouter is IRootRouter, Ownable {
         bytes memory payload = abi.encodePacked(bytes1(0x02), params);
 
         //Add new global token to branch chain
+        // @audit wait what. why the comment says add new golbal token?
         IBridgeAgent(bridgeAgentAddress).callOut{value: msg.value}(
             payable(_refundee), _refundee, _dstChainId, payload, _gParams[0]
         );
@@ -267,6 +268,8 @@ contract CoreRootRouter is IRootRouter, Ownable {
      * @param _dstChainId Chain Id of the branch chain where the new Bridge Agent will be deployed.
      * @param _gParams Gas parameters for remote execution.
      */
+
+    // @audit can be called by anyone. should this be called by a trusted party or anyone can call it?
     function setCoreBranch(
         address _refundee,
         address _coreBranchRouter,
@@ -276,7 +279,7 @@ contract CoreRootRouter is IRootRouter, Ownable {
     ) external payable {
         // Check caller is root port
         require(msg.sender == rootPortAddress, "Only root port can call");
-
+        // @audit address zero check not done
         // Encode CallData
         bytes memory params = abi.encode(_coreBranchRouter, _coreBranchBridgeAgent);
 
@@ -294,6 +297,9 @@ contract CoreRootRouter is IRootRouter, Ownable {
     ///////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IRootRouter
+    // @audit-info _encodedData recieved
+    // 1: addLocalToken: 0x02 + loosleyPacked(params)
+    // 2. _addGlobalToken: 0x03 + loosleyPacked(params)
     function executeResponse(bytes calldata _encodedData, uint16 _srcChainId)
         external
         payable
@@ -329,12 +335,15 @@ contract CoreRootRouter is IRootRouter, Ownable {
     }
 
     /// @inheritdoc IRootRouter
+    // @audit-info payload sent:
+    // 1. addGlobalToken: 0x01 + loosleyPacked(params)
     function execute(bytes calldata _encodedData, uint16) external payable override requiresExecutor {
         // Parse funcId
         bytes1 funcId = _encodedData[0];
 
         /// FUNC ID: 1 (_addGlobalToken)
         if (funcId == 0x01) {
+            // @audit unsafe cast from uint256 to uint16 for dstChainId.
             (address refundee, address globalAddress, uint16 dstChainId, GasParams[2] memory gasParams) =
                 abi.decode(_encodedData[1:], (address, address, uint16, GasParams[2]));
 
@@ -411,11 +420,13 @@ contract CoreRootRouter is IRootRouter, Ownable {
     ) internal {
         if (_dstChainId == rootChainId) revert InvalidChainId();
 
+        // @audit-info check if the global address is a valid global address on the root chain
         if (!IPort(rootPortAddress).isGlobalAddress(_globalAddress)) {
             revert UnrecognizedGlobalToken();
         }
 
         // Verify that it does not exist
+        // @audit check that global token is not already exist on the destination check
         if (IPort(rootPortAddress).isGlobalToken(_globalAddress, _dstChainId)) {
             revert TokenAlreadyAdded();
         }
@@ -431,9 +442,12 @@ contract CoreRootRouter is IRootRouter, Ownable {
         );
 
         // Pack funcId into data
+        // @audit-info payload sent:
+        // 1. _addGlobalToken: 0x01 + loosleyPacked(params)
         bytes memory payload = abi.encodePacked(bytes1(0x01), params);
 
         //Add new global token to branch chain
+        // @audit-info payload sent: 0x01 + loosleyPacked(params)
         IBridgeAgent(bridgeAgentAddress).callOut{value: msg.value}(
             payable(_refundee), _refundee, _dstChainId, payload, _gParams[0]
         );
@@ -457,15 +471,19 @@ contract CoreRootRouter is IRootRouter, Ownable {
         uint8 _decimals,
         uint16 _srcChainId
     ) internal {
+        // @audit still not sure about the difference between global address and local address
+        // @audit-info maybe check for global address and local address is done to prevent adding a htoken as a local token
         // Verify if the underlying address is already known by the branch or root chain
         if (IPort(rootPortAddress).isGlobalAddress(_underlyingAddress)) revert TokenAlreadyAdded();
         if (IPort(rootPortAddress).isLocalToken(_underlyingAddress, _srcChainId)) revert TokenAlreadyAdded();
         if (IPort(rootPortAddress).isUnderlyingToken(_underlyingAddress, _srcChainId)) revert TokenAlreadyAdded();
 
         //Create a new global token
+        // @audit What if i pass the token with the same name and same symbol but different decimals?
         address newToken = address(IFactory(hTokenFactoryAddress).createToken(_name, _symbol, _decimals));
 
         // Update Registry
+        // @audit if both chain id and root chain id are same, then the global address and local address will be same
         IPort(rootPortAddress).setAddresses(
             newToken, (_srcChainId == rootChainId) ? newToken : _localAddress, _underlyingAddress, _srcChainId
         );

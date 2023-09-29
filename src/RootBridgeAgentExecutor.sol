@@ -47,12 +47,19 @@ contract RootBridgeAgentExecutor is Ownable, BridgeAgentConstants {
      * @param _srcChainId The chain id of the chain that sent the request
      * @dev DEPOSIT FLAG: 0 (System request / response)
      */
+    // @audit-info payload recieved
+    // 1: addLocalToken: 0x00 + 0x11111111 + 0x02 + loosleyPacked(params)
+    // 1. _addGlobalToken: 0x00 + 0x11111111 + 0x03 + loosleyPacked(params)
     function executeSystemRequest(address _router, bytes calldata _payload, uint16 _srcChainId)
         external
         payable
         onlyOwner
     {
         //Try to execute remote request
+        // @audit-info PARAMS_TKN_START = 5;
+        // @audit-info payload sent
+        // 1: addLocalToken: 0x02 + loosleyPacked(params)
+        // 2. _addGlobalToken: 0x03 + loosleyPacked(params)
         IRouter(_router).executeResponse(_payload[PARAMS_TKN_START:], _srcChainId);
     }
 
@@ -63,11 +70,14 @@ contract RootBridgeAgentExecutor is Ownable, BridgeAgentConstants {
      * @param _srcChainId The chain id of the chain that sent the request
      * @dev DEPOSIT FLAG: 1 (Call without Deposit)
      */
+    // @audit-info payload sent:
+    // 1. addGlobalToken: 0x01 + 0x11111111 + 0x01 + loosleyPacked(params)
     function executeNoDeposit(address _router, bytes calldata _payload, uint16 _srcChainId)
         external
         payable
         onlyOwner
     {
+        // @audit-info PARAMS_TKN_START = 5;
         //Execute remote request
         IRouter(_router).execute{value: msg.value}(_payload[PARAMS_TKN_START:], _srcChainId);
     }

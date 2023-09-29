@@ -8,6 +8,8 @@ import {GasParams, IBranchBridgeAgent} from "./interfaces/IBranchBridgeAgent.sol
 import {BranchBridgeAgent} from "./BranchBridgeAgent.sol";
 
 library DeployArbitrumBranchBridgeAgent {
+    // @audit confused why this function can be called by anyone. it should only be called using
+    // factory contract according to me
     function deploy(uint16 _localChainId, address _daoAddress, address _localRouterAddress, address _localPortAddress)
         external
         returns (ArbitrumBranchBridgeAgent)
@@ -122,6 +124,7 @@ contract ArbitrumBranchBridgeAgent is BranchBridgeAgent {
 
     /// @notice Verifies the caller is the Root Bridge Agent.
     /// @dev Internal function used in modifier to reduce contract bytesize.
+    // @audit is it used somewhere
     function _requiresEndpoint(address _endpoint, bytes calldata) internal view override {
         if (msg.sender != address(this)) revert LayerZeroUnauthorizedEndpoint();
         if (_endpoint != rootBridgeAgentAddress) revert LayerZeroUnauthorizedEndpoint();

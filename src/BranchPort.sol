@@ -296,6 +296,9 @@ contract BranchPort is Ownable, IBranchPort {
         uint256 length = _localAddresses.length;
 
         // Sanity Check input arrays
+        // @audit these checks have been made already. no need to check again
+        // only first check is necessary. the rest are redundant according to me for now
+        // going to keep this as it is until i found something contradictory
         if (length > 255) revert InvalidInputArrays();
         if (length != _underlyingAddresses.length) revert InvalidInputArrays();
         if (_underlyingAddresses.length != _amounts.length) revert InvalidInputArrays();

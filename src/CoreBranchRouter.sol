@@ -28,6 +28,7 @@ contract CoreBranchRouter is ICoreBranchRouter, BaseBranchRouter {
      * @param _hTokenFactoryAddress Branch hToken Factory Address.
      */
     constructor(address _hTokenFactoryAddress) BaseBranchRouter() {
+        // @audit check for the address zero is not done
         hTokenFactoryAddress = _hTokenFactoryAddress;
     }
 
@@ -45,9 +46,13 @@ contract CoreBranchRouter is ICoreBranchRouter, BaseBranchRouter {
         payable
     {
         // Encode Call Data
+        // @audit does this encode checked on the receiving end
+        // @audit-info the arguments will be loosely packed with padding
         bytes memory params = abi.encode(msg.sender, _globalAddress, _dstChainId, [_gParams[1], _gParams[2]]);
 
         // Pack FuncId
+        // @audit-info the arguments will be tightly packed with loosely packed params
+        // @audit-info payload sent: 0x01 + loosleyPacked(params)
         bytes memory payload = abi.encodePacked(bytes1(0x01), params);
 
         // Send Cross-Chain request (System Response/Request)
@@ -83,6 +88,8 @@ contract CoreBranchRouter is ICoreBranchRouter, BaseBranchRouter {
     //////////////////////////////////////////////////////////////*/
 
     /// @inheritdoc IBranchRouter
+    // @audit-info payload sent:
+    // 1. _addGlobalToken: 0x01 + loosleyPacked(params)
     function executeNoSettlement(bytes calldata _params) external payable virtual override requiresAgentExecutor {
         /// _receiveAddGlobalToken
         if (_params[0] == 0x01) {
@@ -178,6 +185,8 @@ contract CoreBranchRouter is ICoreBranchRouter, BaseBranchRouter {
         bytes memory params = abi.encode(_globalAddress, newToken);
 
         // Pack FuncId
+        // @audit-info payload sent:
+        // 1. _addGlobalToken: 0x03 + loosleyPacked(params)
         bytes memory payload = abi.encodePacked(bytes1(0x03), params);
 
         //Send Cross-Chain request
