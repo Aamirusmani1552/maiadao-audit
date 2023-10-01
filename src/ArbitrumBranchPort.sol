@@ -61,8 +61,6 @@ contract ArbitrumBranchPort is BranchPort, IArbitrumBranchPort {
         // Get global token address from root port
         address _globalToken = IRootPort(_rootPortAddress).getLocalTokenFromUnderlying(_underlyingAddress, localChainId);
 
-        console2.log("This is global token %s", _globalToken);
-
         // Check if the global token exists
         if (_globalToken == address(0)) revert UnknownGlobalToken();
 

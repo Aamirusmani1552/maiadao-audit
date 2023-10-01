@@ -1537,8 +1537,8 @@
       }
     },
     "src/ArbitrumBranchPort.sol": {
-      "lastModificationDate": 1696014782815,
-      "contentHash": "39fd72faa588a656c03144d6bb0fda65",
+      "lastModificationDate": 1696192815693,
+      "contentHash": "20ab20f848119f15a31ca979d819dba9",
       "sourceName": "src/ArbitrumBranchPort.sol",
       "solcConfig": {
         "settings": {
@@ -3813,8 +3813,8 @@
       }
     },
     "test/ulysses-omnichain/ArbitrumBranchTest.t.sol": {
-      "lastModificationDate": 1696048471751,
-      "contentHash": "e8a4ac615a5b5d1d72319113c2c9adaf",
+      "lastModificationDate": 1696193151241,
+      "contentHash": "e2ac947d52620bcc5e88ca10e63f90c5",
       "sourceName": "test/ulysses-omnichain/ArbitrumBranchTest.t.sol",
       "solcConfig": {
         "settings": {
