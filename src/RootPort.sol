@@ -283,7 +283,6 @@ contract RootPort is Ownable, IRootPort {
 
         if (_amount - _deposit > 0) {
             unchecked {
-                // @audit ERC20 should be used instead of _hToken
                 _hToken.safeTransfer(_recipient, _amount - _deposit);
             }
         }
@@ -299,7 +298,6 @@ contract RootPort is Ownable, IRootPort {
     {
         if (!isGlobalAddress[_hToken]) revert UnrecognizedToken();
 
-        // @audit ERC20 wrapper missed
         _hToken.safeTransferFrom(_from, address(this), _amount);
     }
 
@@ -310,7 +308,6 @@ contract RootPort is Ownable, IRootPort {
     {
         if (!isGlobalAddress[_hToken]) revert UnrecognizedToken();
 
-        // @audit ERC20 wrapper not used
         _hToken.safeTransfer(_to, _amount);
     }
 
@@ -359,12 +356,11 @@ contract RootPort is Ownable, IRootPort {
      * @notice Creates a new virtual account for a user.
      * @param _user address of the user to associate a virtual account with.
      */
-    // @audit if i pass the same _user will that be a problem?
-    // @audit anyone can create an account for anybody
+
+    // @audit best practice not followed for internal function
     function addVirtualAccount(address _user) internal returns (VirtualAccount newAccount) {
         if (_user == address(0)) revert InvalidUserAddress();
 
-        // @audit anyone can become the owner of the virtual account
         newAccount = new VirtualAccount{salt: keccak256(abi.encode(_user))}(_user, address(this));
         getUserAccount[_user] = newAccount;
 

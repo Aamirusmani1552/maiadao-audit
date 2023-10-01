@@ -94,6 +94,8 @@ contract BaseBranchRouter is IBranchRouter, Ownable {
         override
         lock
     {
+        // @audit there should be check in the deposit input that the hToken is zero address in case
+        // of arbitrum
         //Transfer tokens to this contract.
         _transferAndApproveToken(_dParams.hToken, _dParams.token, _dParams.amount, _dParams.deposit);
 
@@ -165,9 +167,10 @@ contract BaseBranchRouter is IBranchRouter, Ownable {
         address _localPortAddress = localPortAddress;
 
         // Check if the local branch tokens are being spent
+        // @audit will always revert when _amount is zero because there will be only deposit in arbitrum for
+        // native token not for hToken
         if (_amount - _deposit > 0) {
             unchecked {
-                // @audit ERC20(_hToken) should be used instead of _hToken
                 _hToken.safeTransferFrom(msg.sender, address(this), _amount - _deposit);
                 ERC20(_hToken).approve(_localPortAddress, _amount - _deposit);
             }
@@ -175,7 +178,6 @@ contract BaseBranchRouter is IBranchRouter, Ownable {
 
         // Check if the underlying tokens are being spent
         if (_deposit > 0) {
-            // @audit ERC20(_token) should be used instead of _token
             _token.safeTransferFrom(msg.sender, address(this), _deposit);
             ERC20(_token).approve(_localPortAddress, _deposit);
         }

@@ -615,7 +615,7 @@
         "lib/forge-std/src/Base.sol",
         "lib/forge-std/src/StdAssertions.sol",
         "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
+        "lib/forge-std/src\\StdCheats.sol",
         "lib/forge-std/src\\StdError.sol",
         "lib/forge-std/src/StdInvariant.sol",
         "lib/forge-std/src/StdJson.sol",
@@ -1427,7 +1427,7 @@
       "versionRequirement": ">=0.8.0",
       "artifacts": {
         "ERC20": {
-          "0.8.19+commit.7dd6d404.Windows.msvc": "ERC20.sol\\ERC20.json"
+          "0.8.19+commit.7dd6d404.Windows.msvc": "tokens\\ERC20.sol\\ERC20.json"
         }
       }
     },
@@ -1510,6 +1510,7 @@
       },
       "imports": [
         "lib/ExcessivelySafeCall.sol",
+        "lib/forge-std/src\\console2.sol",
         "lib/solady/src\\auth/Ownable.sol",
         "lib/solady/src\\utils/SafeTransferLib.sol",
         "src\\BranchBridgeAgent.sol",
@@ -1536,8 +1537,8 @@
       }
     },
     "src/ArbitrumBranchPort.sol": {
-      "lastModificationDate": 1695926140064,
-      "contentHash": "b84e093c491b542dc88529b9bf714147",
+      "lastModificationDate": 1696014782815,
+      "contentHash": "39fd72faa588a656c03144d6bb0fda65",
       "sourceName": "src/ArbitrumBranchPort.sol",
       "solcConfig": {
         "settings": {
@@ -1569,6 +1570,7 @@
         }
       },
       "imports": [
+        "lib/forge-std/src\\console2.sol",
         "lib/openzeppelin-contracts/contracts\\token/ERC1155/IERC1155Receiver.sol",
         "lib/openzeppelin-contracts/contracts\\token/ERC1155/utils/ERC1155Receiver.sol",
         "lib/openzeppelin-contracts/contracts\\token/ERC721/IERC721Receiver.sol",
@@ -1657,8 +1659,8 @@
       }
     },
     "src/BaseBranchRouter.sol": {
-      "lastModificationDate": 1695836087398,
-      "contentHash": "463a064274a70301c29d87bcee741c97",
+      "lastModificationDate": 1696058986979,
+      "contentHash": "205e1028390bc264c6350e32206c5368",
       "sourceName": "src/BaseBranchRouter.sol",
       "solcConfig": {
         "settings": {
@@ -1706,8 +1708,8 @@
       }
     },
     "src/BranchBridgeAgent.sol": {
-      "lastModificationDate": 1695989650932,
-      "contentHash": "a561e0f4961676ed620b5394493e2225",
+      "lastModificationDate": 1696059337554,
+      "contentHash": "aadc524008ddf37211363a221a899b61",
       "sourceName": "src/BranchBridgeAgent.sol",
       "solcConfig": {
         "settings": {
@@ -1740,6 +1742,7 @@
       },
       "imports": [
         "lib/ExcessivelySafeCall.sol",
+        "lib/forge-std/src\\console2.sol",
         "lib/solady/src\\auth/Ownable.sol",
         "lib/solady/src\\utils/SafeTransferLib.sol",
         "src\\BranchBridgeAgent.sol",
@@ -1798,6 +1801,7 @@
       },
       "imports": [
         "lib/ExcessivelySafeCall.sol",
+        "lib/forge-std/src\\console2.sol",
         "lib/solady/src\\auth/Ownable.sol",
         "lib/solady/src\\utils/SafeTransferLib.sol",
         "src\\BranchBridgeAgent.sol",
@@ -1871,8 +1875,8 @@
       }
     },
     "src/CoreBranchRouter.sol": {
-      "lastModificationDate": 1695989580271,
-      "contentHash": "475b7668badad37496beef1afb9bf73d",
+      "lastModificationDate": 1696018260873,
+      "contentHash": "ebc80a195b3a6866a0ad71b68f8e60c7",
       "sourceName": "src/CoreBranchRouter.sol",
       "solcConfig": {
         "settings": {
@@ -2225,8 +2229,8 @@
       }
     },
     "src/RootPort.sol": {
-      "lastModificationDate": 1695926185034,
-      "contentHash": "3ad755e02578b844a905411a795a6e40",
+      "lastModificationDate": 1696102569315,
+      "contentHash": "9f959d9e7579e01ce9b6e95a232663d3",
       "sourceName": "src/RootPort.sol",
       "solcConfig": {
         "settings": {
@@ -2285,8 +2289,8 @@
       }
     },
     "src/VirtualAccount.sol": {
-      "lastModificationDate": 1695842910951,
-      "contentHash": "d240d8ee82b7e248606d8b466797aae4",
+      "lastModificationDate": 1696136926781,
+      "contentHash": "0496f5b877b697d722f3f5f238b57601",
       "sourceName": "src/VirtualAccount.sol",
       "solcConfig": {
         "settings": {
@@ -2374,6 +2378,7 @@
       },
       "imports": [
         "lib/ExcessivelySafeCall.sol",
+        "lib/forge-std/src\\console2.sol",
         "lib/solady/src\\auth/Ownable.sol",
         "lib/solady/src\\utils/SafeTransferLib.sol",
         "src\\ArbitrumBranchBridgeAgent.sol",
@@ -2434,6 +2439,7 @@
       },
       "imports": [
         "lib/ExcessivelySafeCall.sol",
+        "lib/forge-std/src\\console2.sol",
         "lib/solady/src\\auth/Ownable.sol",
         "lib/solady/src\\utils/SafeTransferLib.sol",
         "src\\BranchBridgeAgent.sol",
@@ -3659,7 +3665,7 @@
       }
     },
     "test/test-utils/fork/LzForkTest.t.sol": {
-      "lastModificationDate": 1695492210715,
+      "lastModificationDate": 1696008685721,
       "contentHash": "72a052ae87fdb46d99b8026772b0d658",
       "sourceName": "test/test-utils/fork/LzForkTest.t.sol",
       "solcConfig": {
@@ -3696,7 +3702,7 @@
         "lib/forge-std/src/Base.sol",
         "lib/forge-std/src/StdAssertions.sol",
         "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
+        "lib/forge-std/src\\StdCheats.sol",
         "lib/forge-std/src\\StdError.sol",
         "lib/forge-std/src/StdInvariant.sol",
         "lib/forge-std/src/StdJson.sol",
@@ -3807,8 +3813,8 @@
       }
     },
     "test/ulysses-omnichain/ArbitrumBranchTest.t.sol": {
-      "lastModificationDate": 1695492210716,
-      "contentHash": "5f9b8443bb40e48a720c07a6a1e58360",
+      "lastModificationDate": 1696048471751,
+      "contentHash": "e8a4ac615a5b5d1d72319113c2c9adaf",
       "sourceName": "test/ulysses-omnichain/ArbitrumBranchTest.t.sol",
       "solcConfig": {
         "settings": {
@@ -3845,7 +3851,7 @@
         "lib/forge-std/src/Base.sol",
         "lib/forge-std/src/StdAssertions.sol",
         "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
+        "lib/forge-std/src\\StdCheats.sol",
         "lib/forge-std/src\\StdError.sol",
         "lib/forge-std/src/StdInvariant.sol",
         "lib/forge-std/src/StdJson.sol",
@@ -3922,7 +3928,9 @@
         "test\\ulysses-omnichain\\helpers\\ImportHelper.sol",
         "test\\ulysses-omnichain\\mocks\\MockRootBridgeAgent.t.sol",
         "test\\ulysses-omnichain\\mocks\\Multicall2.sol",
-        "test\\ulysses-omnichain\\mocks\\WETH9.sol"
+        "test\\ulysses-omnichain\\mocks\\WETH9.sol",
+        "test\\ulysses-omnichain\\weird-tokens\\ERC20.sol",
+        "test\\ulysses-omnichain\\weird-tokens\\TransferFeeToken.sol"
       ],
       "versionRequirement": "^0.8.16",
       "artifacts": {
@@ -3970,7 +3978,7 @@
         "lib/forge-std/src/Base.sol",
         "lib/forge-std/src/StdAssertions.sol",
         "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
+        "lib/forge-std/src\\StdCheats.sol",
         "lib/forge-std/src\\StdError.sol",
         "lib/forge-std/src/StdInvariant.sol",
         "lib/forge-std/src/StdJson.sol",
@@ -4095,7 +4103,7 @@
         "lib/forge-std/src/Base.sol",
         "lib/forge-std/src/StdAssertions.sol",
         "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
+        "lib/forge-std/src\\StdCheats.sol",
         "lib/forge-std/src\\StdError.sol",
         "lib/forge-std/src/StdInvariant.sol",
         "lib/forge-std/src/StdJson.sol",
@@ -4220,7 +4228,7 @@
         "lib/forge-std/src/Base.sol",
         "lib/forge-std/src/StdAssertions.sol",
         "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
+        "lib/forge-std/src\\StdCheats.sol",
         "lib/forge-std/src\\StdError.sol",
         "lib/forge-std/src/StdInvariant.sol",
         "lib/forge-std/src/StdJson.sol",
@@ -4345,7 +4353,7 @@
         "lib/forge-std/src/Base.sol",
         "lib/forge-std/src/StdAssertions.sol",
         "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
+        "lib/forge-std/src\\StdCheats.sol",
         "lib/forge-std/src\\StdError.sol",
         "lib/forge-std/src/StdInvariant.sol",
         "lib/forge-std/src/StdJson.sol",
@@ -4470,7 +4478,7 @@
         "lib/forge-std/src/Base.sol",
         "lib/forge-std/src/StdAssertions.sol",
         "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
+        "lib/forge-std/src\\StdCheats.sol",
         "lib/forge-std/src\\StdError.sol",
         "lib/forge-std/src/StdInvariant.sol",
         "lib/forge-std/src/StdJson.sol",
@@ -4598,7 +4606,7 @@
         "lib/forge-std/src/Base.sol",
         "lib/forge-std/src/StdAssertions.sol",
         "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
+        "lib/forge-std/src\\StdCheats.sol",
         "lib/forge-std/src\\StdError.sol",
         "lib/forge-std/src/StdInvariant.sol",
         "lib/forge-std/src/StdJson.sol",
@@ -4685,8 +4693,8 @@
       }
     },
     "test/ulysses-omnichain/RootForkTest.t.sol": {
-      "lastModificationDate": 1695492210720,
-      "contentHash": "2ff5c22f027cbce7d90043e60855c351",
+      "lastModificationDate": 1696176741870,
+      "contentHash": "a7a0958f35cb9554a23f1a029c39ab49",
       "sourceName": "test/ulysses-omnichain/RootForkTest.t.sol",
       "solcConfig": {
         "settings": {
@@ -4723,7 +4731,7 @@
         "lib/forge-std/src/Base.sol",
         "lib/forge-std/src/StdAssertions.sol",
         "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
+        "lib/forge-std/src\\StdCheats.sol",
         "lib/forge-std/src\\StdError.sol",
         "lib/forge-std/src/StdInvariant.sol",
         "lib/forge-std/src/StdJson.sol",
@@ -4812,7 +4820,9 @@
         "test\\ulysses-omnichain\\helpers\\RootPortHelper.t.sol",
         "test\\ulysses-omnichain\\mocks\\MockRootBridgeAgent.t.sol",
         "test\\ulysses-omnichain\\mocks\\Multicall2.sol",
-        "test\\ulysses-omnichain\\mocks\\WETH9.sol"
+        "test\\ulysses-omnichain\\mocks\\WETH9.sol",
+        "test\\ulysses-omnichain\\weird-tokens\\ERC20.sol",
+        "test\\ulysses-omnichain\\weird-tokens\\TransferFeeToken.sol"
       ],
       "versionRequirement": "^0.8.0",
       "artifacts": {
@@ -4821,6 +4831,9 @@
         },
         "RootForkTest": {
           "0.8.19+commit.7dd6d404.Windows.msvc": "RootForkTest.t.sol\\RootForkTest.json"
+        },
+        "UniV3NFT": {
+          "0.8.19+commit.7dd6d404.Windows.msvc": "RootForkTest.t.sol\\UniV3NFT.json"
         }
       }
     },
@@ -4863,7 +4876,7 @@
         "lib/forge-std/src/Base.sol",
         "lib/forge-std/src/StdAssertions.sol",
         "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
+        "lib/forge-std/src\\StdCheats.sol",
         "lib/forge-std/src\\StdError.sol",
         "lib/forge-std/src/StdInvariant.sol",
         "lib/forge-std/src/StdJson.sol",
@@ -4991,7 +5004,7 @@
         "lib/forge-std/src/Base.sol",
         "lib/forge-std/src/StdAssertions.sol",
         "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
+        "lib/forge-std/src\\StdCheats.sol",
         "lib/forge-std/src\\StdError.sol",
         "lib/forge-std/src/StdInvariant.sol",
         "lib/forge-std/src/StdJson.sol",
@@ -5116,7 +5129,7 @@
         "lib/forge-std/src/Base.sol",
         "lib/forge-std/src/StdAssertions.sol",
         "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
+        "lib/forge-std/src\\StdCheats.sol",
         "lib/forge-std/src\\StdError.sol",
         "lib/forge-std/src/StdInvariant.sol",
         "lib/forge-std/src/StdJson.sol",
@@ -5241,7 +5254,7 @@
         "lib/forge-std/src/Base.sol",
         "lib/forge-std/src/StdAssertions.sol",
         "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
+        "lib/forge-std/src\\StdCheats.sol",
         "lib/forge-std/src\\StdError.sol",
         "lib/forge-std/src/StdInvariant.sol",
         "lib/forge-std/src/StdJson.sol",
@@ -5367,7 +5380,7 @@
         "lib/forge-std/src/Base.sol",
         "lib/forge-std/src/StdAssertions.sol",
         "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
+        "lib/forge-std/src\\StdCheats.sol",
         "lib/forge-std/src\\StdError.sol",
         "lib/forge-std/src/StdInvariant.sol",
         "lib/forge-std/src/StdJson.sol",
@@ -5492,7 +5505,7 @@
         "lib/forge-std/src/Base.sol",
         "lib/forge-std/src/StdAssertions.sol",
         "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
+        "lib/forge-std/src\\StdCheats.sol",
         "lib/forge-std/src\\StdError.sol",
         "lib/forge-std/src/StdInvariant.sol",
         "lib/forge-std/src/StdJson.sol",
@@ -5617,7 +5630,7 @@
         "lib/forge-std/src/Base.sol",
         "lib/forge-std/src/StdAssertions.sol",
         "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
+        "lib/forge-std/src\\StdCheats.sol",
         "lib/forge-std/src\\StdError.sol",
         "lib/forge-std/src/StdInvariant.sol",
         "lib/forge-std/src/StdJson.sol",
@@ -5742,7 +5755,7 @@
         "lib/forge-std/src/Base.sol",
         "lib/forge-std/src/StdAssertions.sol",
         "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
+        "lib/forge-std/src\\StdCheats.sol",
         "lib/forge-std/src\\StdError.sol",
         "lib/forge-std/src/StdInvariant.sol",
         "lib/forge-std/src/StdJson.sol",
@@ -5866,7 +5879,7 @@
         "lib/forge-std/src/Base.sol",
         "lib/forge-std/src/StdAssertions.sol",
         "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
+        "lib/forge-std/src\\StdCheats.sol",
         "lib/forge-std/src\\StdError.sol",
         "lib/forge-std/src/StdInvariant.sol",
         "lib/forge-std/src/StdJson.sol",
@@ -5991,7 +6004,7 @@
         "lib/forge-std/src/Base.sol",
         "lib/forge-std/src/StdAssertions.sol",
         "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
+        "lib/forge-std/src\\StdCheats.sol",
         "lib/forge-std/src\\StdError.sol",
         "lib/forge-std/src/StdInvariant.sol",
         "lib/forge-std/src/StdJson.sol",
@@ -6116,7 +6129,7 @@
         "lib/forge-std/src/Base.sol",
         "lib/forge-std/src/StdAssertions.sol",
         "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
+        "lib/forge-std/src\\StdCheats.sol",
         "lib/forge-std/src\\StdError.sol",
         "lib/forge-std/src/StdInvariant.sol",
         "lib/forge-std/src/StdJson.sol",
@@ -6244,7 +6257,7 @@
         "lib/forge-std/src/Base.sol",
         "lib/forge-std/src/StdAssertions.sol",
         "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
+        "lib/forge-std/src\\StdCheats.sol",
         "lib/forge-std/src\\StdError.sol",
         "lib/forge-std/src/StdInvariant.sol",
         "lib/forge-std/src/StdJson.sol",
@@ -6370,7 +6383,7 @@
         "lib/forge-std/src/Base.sol",
         "lib/forge-std/src/StdAssertions.sol",
         "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
+        "lib/forge-std/src\\StdCheats.sol",
         "lib/forge-std/src\\StdError.sol",
         "lib/forge-std/src/StdInvariant.sol",
         "lib/forge-std/src/StdJson.sol",
@@ -6506,7 +6519,7 @@
         "lib/forge-std/src/Base.sol",
         "lib/forge-std/src/StdAssertions.sol",
         "lib/forge-std/src/StdChains.sol",
-        "lib/forge-std/src/StdCheats.sol",
+        "lib/forge-std/src\\StdCheats.sol",
         "lib/forge-std/src\\StdError.sol",
         "lib/forge-std/src/StdInvariant.sol",
         "lib/forge-std/src/StdJson.sol",
@@ -6739,6 +6752,93 @@
       "artifacts": {
         "WETH9": {
           "0.8.19+commit.7dd6d404.Windows.msvc": "WETH9.sol\\WETH9.json"
+        }
+      }
+    },
+    "test/ulysses-omnichain/weird-tokens/ERC20.sol": {
+      "lastModificationDate": 1696009707025,
+      "contentHash": "a89290d9cbd756a6ac04f900d8d29d65",
+      "sourceName": "test/ulysses-omnichain/weird-tokens/ERC20.sol",
+      "solcConfig": {
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "metadata": {
+            "useLiteralContent": false,
+            "bytecodeHash": "ipfs",
+            "appendCBOR": true
+          },
+          "outputSelection": {
+            "*": {
+              "": [
+                "ast"
+              ],
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ]
+            }
+          },
+          "evmVersion": "paris",
+          "libraries": {}
+        }
+      },
+      "imports": [],
+      "versionRequirement": "^0.8.19",
+      "artifacts": {
+        "ERC20": {
+          "0.8.19+commit.7dd6d404.Windows.msvc": "ERC20.sol\\ERC20.json"
+        },
+        "Math": {
+          "0.8.19+commit.7dd6d404.Windows.msvc": "ERC20.sol\\Math.json"
+        }
+      }
+    },
+    "test/ulysses-omnichain/weird-tokens/TransferFeeToken.sol": {
+      "lastModificationDate": 1696009709539,
+      "contentHash": "bb7bcab6e47e637c0d76b62ea114b7d4",
+      "sourceName": "test/ulysses-omnichain/weird-tokens/TransferFeeToken.sol",
+      "solcConfig": {
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "metadata": {
+            "useLiteralContent": false,
+            "bytecodeHash": "ipfs",
+            "appendCBOR": true
+          },
+          "outputSelection": {
+            "*": {
+              "": [
+                "ast"
+              ],
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ]
+            }
+          },
+          "evmVersion": "paris",
+          "libraries": {}
+        }
+      },
+      "imports": [
+        "test\\ulysses-omnichain\\weird-tokens\\ERC20.sol"
+      ],
+      "versionRequirement": "^0.8.19",
+      "artifacts": {
+        "TransferFeeToken": {
+          "0.8.19+commit.7dd6d404.Windows.msvc": "TransferFeeToken.sol\\TransferFeeToken.json"
         }
       }
     }

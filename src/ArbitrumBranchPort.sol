@@ -8,6 +8,7 @@ import {IArbitrumBranchPort} from "./interfaces/IArbitrumBranchPort.sol";
 import {IRootPort} from "./interfaces/IRootPort.sol";
 
 import {BranchPort} from "./BranchPort.sol";
+import {console2} from "forge-std/console2.sol";
 
 /// @title Arbitrum Branch Port Contract
 /// @author MaiaDAO
@@ -60,11 +61,12 @@ contract ArbitrumBranchPort is BranchPort, IArbitrumBranchPort {
         // Get global token address from root port
         address _globalToken = IRootPort(_rootPortAddress).getLocalTokenFromUnderlying(_underlyingAddress, localChainId);
 
+        console2.log("This is global token %s", _globalToken);
+
         // Check if the global token exists
         if (_globalToken == address(0)) revert UnknownGlobalToken();
 
         // Deposit Assets to Port
-        // @audit ERC20 wrapper not used
         _underlyingAddress.safeTransferFrom(_depositor, address(this), _deposit);
 
         // Request Minting of Global Token

