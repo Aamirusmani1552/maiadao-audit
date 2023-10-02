@@ -3029,21 +3029,21 @@ contract RootForkTest is LzForkTest {
 
     // @audit passed
 
-    function test_FeeOnTransferTokenAreNotSupported() public {
+    function test_FeeOnTransferTokenWillCauseDOSWhenCalledCalloutAndBridge() public {
         uint256 fee = 10 ether;
         uint256 totalSupply = 100_000_000 ether; // 100 million tokens
         address user = makeAddr("Bob");
         uint256 userBalance = 1000 ether;
 
+        // swithcing to ftm chain
         switchToLzChainWithoutExecutePendingOrPacketUpdate(ftmChainId);
 
         // deploying new transfer fee token on avax chain
         // this will be our _underlying token
         TransferFeeToken transferFeeToken = new TransferFeeToken(totalSupply, fee);
 
-        // transfering some of this _underlying _tokne to user and branch router on avax Chain
+        // transfering some of this _underlying _tokne to user
         transferFeeToken.transfer(user, userBalance);
-        transferFeeToken.transfer(address(ftmCoreRouter), userBalance);
 
         // adding this new _underlying token to branch and root chain
         _addLocalToken(address(transferFeeToken));
@@ -3073,28 +3073,11 @@ contract RootForkTest is LzForkTest {
         // approving token for branch router
         transferFeeToken.approve(address(ftmCoreRouter), bridgeOutAmount);
 
+        vm.expectRevert();
         // call to bridge the tokens on root chain
         ftmCoreRouter.callOutAndBridge{value: 20 ether}(payload, depositInput, GasParams(2_000_000, 0));
 
         vm.stopPrank();
-
-        uint256 userBalanceAfter = transferFeeToken.balanceOf(user);
-        uint256 branchPortBalanceAfter = transferFeeToken.balanceOf(address(ftmPort));
-
-        // user should have sent bridged amount to the port
-        require(userBalanceBefore - userBalanceAfter == bridgeOutAmount, "invalid amount");
-
-        // fee will be deducted twice since the token will be sent to branch router first and then to branch port
-        console2.log("updated balance of branch port", branchPortBalanceAfter - branchPortBalanceBefore);
-        require(branchPortBalanceAfter - branchPortBalanceBefore == (bridgeOutAmount - fee), "invalid amount");
-
-        // switching to root chain to check we have correct balance
-        switchToLzChain(rootChainId);
-        uint256 userBalanceOfGlobalHToken = MockERC20(newFtmAssetGlobalAddress).balanceOf(user);
-        uint256 coreRootRouterBalanceOfGlobalHToken =
-            MockERC20(newFtmAssetGlobalAddress).balanceOf(address(coreRootRouter));
-
-        require(coreRootRouterBalanceOfGlobalHToken == bridgeOutAmount, "invalid amount");
     }
 
     function _addLocalToken(address _token) public {
