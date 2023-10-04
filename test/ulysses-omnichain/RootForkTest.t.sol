@@ -2975,6 +2975,15 @@ contract RootForkTest is LzForkTest {
         // adding this new _underlying token to branch and root chain
         _addLocalToken(address(newToken));
 
+        // getting global h token balances of the user and core root router
+        switchToLzChain(rootChainId);
+        uint256 userBalanceOfGlobalHTokenBeforeBridgeOut = MockERC20(newFtmAssetGlobalAddress).balanceOf(user);
+        uint256 coreRootRouterBalanceOfGlobalHTokenBeforeBridgeOut =
+            MockERC20(newFtmAssetGlobalAddress).balanceOf(address(coreRootRouter));
+
+        require(userBalanceOfGlobalHTokenBeforeBridgeOut == 0, "invalid amount");
+        require(coreRootRouterBalanceOfGlobalHTokenBeforeBridgeOut == 0, "invalid amount");
+
         // making sure that we are on correct chain
         switchToLzChainWithoutExecutePendingOrPacketUpdate(ftmChainId);
 
@@ -3113,8 +3122,8 @@ contract RootForkTest is LzForkTest {
         );
     }
 
-    // @audit checking
-    function test_multipleDeposit() public {
+    // @audit passed
+    function test_UserWillLostTokenInCaseOfCallOutAndBridgeMultiple() public {
         // setup data
         address user = makeAddr("Bob");
         uint256 numberOftokensToAdd = 2;
@@ -3470,16 +3479,16 @@ contract RootForkTest is LzForkTest {
         require(!rootPort.isBridgeAgent(address(coreRootBridgeAgent)), "invalid bridge agent factory");
     }
 
-
     function testFuzz_manageStrategyWithoutStrategyPreviousDebt(uint256 _ftmPortTokenBalance) public {
         vm.assume(_ftmPortTokenBalance > 1 ether && _ftmPortTokenBalance < 1_000_000 ether);
-        
+
         uint256 dailyManagementLimitForStrategy = 250 ether;
         uint256 minimumReserveRatio = 3e3;
         uint256 divisor = 1e4;
         uint256 ftmPortTokenBalance = _ftmPortTokenBalance;
         uint256 withdrawableAmount = ftmPortTokenBalance - (ftmPortTokenBalance * minimumReserveRatio / divisor);
-        uint256 amountToWithdraw = dailyManagementLimitForStrategy > withdrawableAmount ? withdrawableAmount : dailyManagementLimitForStrategy;
+        uint256 amountToWithdraw =
+            dailyManagementLimitForStrategy > withdrawableAmount ? withdrawableAmount : dailyManagementLimitForStrategy;
 
         switchToLzChainWithoutExecutePendingOrPacketUpdate(ftmChainId);
         // creating new strategy
@@ -3495,11 +3504,7 @@ contract RootForkTest is LzForkTest {
 
         // adding port strategy token
         coreRootRouter.manageStrategyToken{value: 1 ether}(
-            address(strategyToken),
-            minimumReserveRatio,
-            address(this),
-            ftmChainId,
-            GasParams(300_000, 0)
+            address(strategyToken), minimumReserveRatio, address(this), ftmChainId, GasParams(300_000, 0)
         );
 
         // adding port stratey to the ftm branch
@@ -3516,7 +3521,7 @@ contract RootForkTest is LzForkTest {
         // swithcing to ftm chain for checking tokens
         switchToLzChain(ftmChainId);
         require(ftmPort.isStrategyToken(address(strategyToken)), "no token added");
-        require(ftmPort.isPortStrategy(address(strategy),address(strategyToken)), "no strategy added added");
+        require(ftmPort.isPortStrategy(address(strategy), address(strategyToken)), "no strategy added added");
 
         // swithcing to ftm chain for checking tokens
         switchToLzChain(ftmChainId);
@@ -3530,22 +3535,28 @@ contract RootForkTest is LzForkTest {
         vm.stopPrank();
 
         require(ftmPort.getStrategyTokenDebt(address(strategyToken)) == amountToWithdraw, "invalid amount");
-        require(ftmPort.getPortStrategyTokenDebt(address(strategy), address(strategyToken)) == amountToWithdraw, "invalid amount");
+        require(
+            ftmPort.getPortStrategyTokenDebt(address(strategy), address(strategyToken)) == amountToWithdraw,
+            "invalid amount"
+        );
 
         require(strategyToken.balanceOf(address(strategy)) == amountToWithdraw, "invalid amount");
 
         require(strategyToken.balanceOf(address(ftmPort)) == ftmPortTokenBalance - amountToWithdraw, "invalid amount");
     }
 
-    function testFuzz_manageStrategyWithoutStrategyPreviousDebtAndWithSmallPortBalance(uint256 _ftmPortTokenBalance) public {
-        vm.assume(_ftmPortTokenBalance > 0 && _ftmPortTokenBalance < 1 ether );
-        
+    function testFuzz_manageStrategyWithoutStrategyPreviousDebtAndWithSmallPortBalance(uint256 _ftmPortTokenBalance)
+        public
+    {
+        vm.assume(_ftmPortTokenBalance > 0 && _ftmPortTokenBalance < 1 ether);
+
         uint256 dailyManagementLimitForStrategy = 250 ether;
         uint256 minimumReserveRatio = 3e3;
         uint256 divisor = 1e4;
         uint256 ftmPortTokenBalance = _ftmPortTokenBalance;
         uint256 withdrawableAmount = ftmPortTokenBalance - (ftmPortTokenBalance * minimumReserveRatio / divisor);
-        uint256 amountToWithdraw = dailyManagementLimitForStrategy > withdrawableAmount ? withdrawableAmount : dailyManagementLimitForStrategy;
+        uint256 amountToWithdraw =
+            dailyManagementLimitForStrategy > withdrawableAmount ? withdrawableAmount : dailyManagementLimitForStrategy;
 
         switchToLzChainWithoutExecutePendingOrPacketUpdate(ftmChainId);
         // creating new strategy
@@ -3561,11 +3572,7 @@ contract RootForkTest is LzForkTest {
 
         // adding port strategy token
         coreRootRouter.manageStrategyToken{value: 1 ether}(
-            address(strategyToken),
-            minimumReserveRatio,
-            address(this),
-            ftmChainId,
-            GasParams(300_000, 0)
+            address(strategyToken), minimumReserveRatio, address(this), ftmChainId, GasParams(300_000, 0)
         );
 
         // adding port stratey to the ftm branch
@@ -3582,7 +3589,7 @@ contract RootForkTest is LzForkTest {
         // swithcing to ftm chain for checking tokens
         switchToLzChain(ftmChainId);
         require(ftmPort.isStrategyToken(address(strategyToken)), "no token added");
-        require(ftmPort.isPortStrategy(address(strategy),address(strategyToken)), "no strategy added added");
+        require(ftmPort.isPortStrategy(address(strategy), address(strategyToken)), "no strategy added added");
 
         // swithcing to ftm chain for checking tokens
         switchToLzChain(ftmChainId);
@@ -3596,23 +3603,30 @@ contract RootForkTest is LzForkTest {
         vm.stopPrank();
 
         require(ftmPort.getStrategyTokenDebt(address(strategyToken)) == amountToWithdraw, "invalid amount");
-        require(ftmPort.getPortStrategyTokenDebt(address(strategy), address(strategyToken)) == amountToWithdraw, "invalid amount");
+        require(
+            ftmPort.getPortStrategyTokenDebt(address(strategy), address(strategyToken)) == amountToWithdraw,
+            "invalid amount"
+        );
 
         require(strategyToken.balanceOf(address(strategy)) == amountToWithdraw, "invalid amount");
 
         require(strategyToken.balanceOf(address(ftmPort)) == ftmPortTokenBalance - amountToWithdraw, "invalid amount");
     }
 
-    function testFuzz_manageStrategyWithoutStrategyPreviousDebtAndDifferntPercentagesAndSmallBalance(uint256 _ftmPortTokenBalance, uint256 _minimumReserveRation) public {
-        vm.assume(_ftmPortTokenBalance > 0 && _ftmPortTokenBalance < 1 ether );
-        vm.assume(_minimumReserveRation >= 3e3 &&  _minimumReserveRation < 1e4);
-        
+    function testFuzz_manageStrategyWithoutStrategyPreviousDebtAndDifferntPercentagesAndSmallBalance(
+        uint256 _ftmPortTokenBalance,
+        uint256 _minimumReserveRation
+    ) public {
+        vm.assume(_ftmPortTokenBalance > 0 && _ftmPortTokenBalance < 1 ether);
+        vm.assume(_minimumReserveRation >= 3e3 && _minimumReserveRation < 1e4);
+
         uint256 dailyManagementLimitForStrategy = 250 ether;
         uint256 minimumReserveRatio = uint256(_minimumReserveRation);
         uint256 divisor = 1e4;
         uint256 ftmPortTokenBalance = _ftmPortTokenBalance;
         uint256 withdrawableAmount = ftmPortTokenBalance - (ftmPortTokenBalance * minimumReserveRatio / divisor);
-        uint256 amountToWithdraw = dailyManagementLimitForStrategy > withdrawableAmount ? withdrawableAmount : dailyManagementLimitForStrategy;
+        uint256 amountToWithdraw =
+            dailyManagementLimitForStrategy > withdrawableAmount ? withdrawableAmount : dailyManagementLimitForStrategy;
 
         switchToLzChainWithoutExecutePendingOrPacketUpdate(ftmChainId);
         // creating new strategy
@@ -3628,11 +3642,7 @@ contract RootForkTest is LzForkTest {
 
         // adding port strategy token
         coreRootRouter.manageStrategyToken{value: 1 ether}(
-            address(strategyToken),
-            minimumReserveRatio,
-            address(this),
-            ftmChainId,
-            GasParams(300_000, 0)
+            address(strategyToken), minimumReserveRatio, address(this), ftmChainId, GasParams(300_000, 0)
         );
 
         // adding port stratey to the ftm branch
@@ -3649,7 +3659,7 @@ contract RootForkTest is LzForkTest {
         // swithcing to ftm chain for checking tokens
         switchToLzChain(ftmChainId);
         require(ftmPort.isStrategyToken(address(strategyToken)), "no token added");
-        require(ftmPort.isPortStrategy(address(strategy),address(strategyToken)), "no strategy added added");
+        require(ftmPort.isPortStrategy(address(strategy), address(strategyToken)), "no strategy added added");
 
         // swithcing to ftm chain for checking tokens
         switchToLzChain(ftmChainId);
@@ -3663,23 +3673,30 @@ contract RootForkTest is LzForkTest {
         vm.stopPrank();
 
         require(ftmPort.getStrategyTokenDebt(address(strategyToken)) == amountToWithdraw, "invalid amount");
-        require(ftmPort.getPortStrategyTokenDebt(address(strategy), address(strategyToken)) == amountToWithdraw, "invalid amount");
+        require(
+            ftmPort.getPortStrategyTokenDebt(address(strategy), address(strategyToken)) == amountToWithdraw,
+            "invalid amount"
+        );
 
         require(strategyToken.balanceOf(address(strategy)) == amountToWithdraw, "invalid amount");
 
         require(strategyToken.balanceOf(address(ftmPort)) == ftmPortTokenBalance - amountToWithdraw, "invalid amount");
     }
 
-    function testFuzz_manageStrategyWithoutStrategyPreviousDebtAndDifferntPercentagesAndBigBalance(uint256 _ftmPortTokenBalance, uint256 _minimumReserveRation) public {
-        vm.assume(_ftmPortTokenBalance > 1 ether && _ftmPortTokenBalance < 1_000_000 ether );
-        vm.assume(_minimumReserveRation >= 3e3 &&  _minimumReserveRation < 1e4);
-        
+    function testFuzz_manageStrategyWithoutStrategyPreviousDebtAndDifferntPercentagesAndBigBalance(
+        uint256 _ftmPortTokenBalance,
+        uint256 _minimumReserveRation
+    ) public {
+        vm.assume(_ftmPortTokenBalance > 1 ether && _ftmPortTokenBalance < 1_000_000 ether);
+        vm.assume(_minimumReserveRation >= 3e3 && _minimumReserveRation < 1e4);
+
         uint256 dailyManagementLimitForStrategy = 250 ether;
         uint256 minimumReserveRatio = uint256(_minimumReserveRation);
         uint256 divisor = 1e4;
         uint256 ftmPortTokenBalance = _ftmPortTokenBalance;
         uint256 withdrawableAmount = ftmPortTokenBalance - (ftmPortTokenBalance * minimumReserveRatio / divisor);
-        uint256 amountToWithdraw = dailyManagementLimitForStrategy > withdrawableAmount ? withdrawableAmount : dailyManagementLimitForStrategy;
+        uint256 amountToWithdraw =
+            dailyManagementLimitForStrategy > withdrawableAmount ? withdrawableAmount : dailyManagementLimitForStrategy;
 
         switchToLzChainWithoutExecutePendingOrPacketUpdate(ftmChainId);
         // creating new strategy
@@ -3695,11 +3712,7 @@ contract RootForkTest is LzForkTest {
 
         // adding port strategy token
         coreRootRouter.manageStrategyToken{value: 1 ether}(
-            address(strategyToken),
-            minimumReserveRatio,
-            address(this),
-            ftmChainId,
-            GasParams(300_000, 0)
+            address(strategyToken), minimumReserveRatio, address(this), ftmChainId, GasParams(300_000, 0)
         );
 
         // adding port stratey to the ftm branch
@@ -3716,7 +3729,7 @@ contract RootForkTest is LzForkTest {
         // swithcing to ftm chain for checking tokens
         switchToLzChain(ftmChainId);
         require(ftmPort.isStrategyToken(address(strategyToken)), "no token added");
-        require(ftmPort.isPortStrategy(address(strategy),address(strategyToken)), "no strategy added added");
+        require(ftmPort.isPortStrategy(address(strategy), address(strategyToken)), "no strategy added added");
 
         // swithcing to ftm chain for checking tokens
         switchToLzChain(ftmChainId);
@@ -3730,7 +3743,10 @@ contract RootForkTest is LzForkTest {
         vm.stopPrank();
 
         require(ftmPort.getStrategyTokenDebt(address(strategyToken)) == amountToWithdraw, "invalid amount");
-        require(ftmPort.getPortStrategyTokenDebt(address(strategy), address(strategyToken)) == amountToWithdraw, "invalid amount");
+        require(
+            ftmPort.getPortStrategyTokenDebt(address(strategy), address(strategyToken)) == amountToWithdraw,
+            "invalid amount"
+        );
 
         require(strategyToken.balanceOf(address(strategy)) == amountToWithdraw, "invalid amount");
 
@@ -3743,8 +3759,10 @@ contract RootForkTest is LzForkTest {
         uint256 divisor = 1e4;
         uint256 ftmPortTokenBalance = 1000 ether;
         uint256 strategyPerviousDebt = 0;
-        uint256 withdrawableAmount = _calculateWithdrawableAmount(ftmPortTokenBalance, minimumReserveRatio, divisor, strategyPerviousDebt);
-        uint256 amountToWithdraw = dailyManagementLimitForStrategy > withdrawableAmount ? withdrawableAmount : dailyManagementLimitForStrategy;
+        uint256 withdrawableAmount =
+            _calculateWithdrawableAmount(ftmPortTokenBalance, minimumReserveRatio, divisor, strategyPerviousDebt);
+        uint256 amountToWithdraw =
+            dailyManagementLimitForStrategy > withdrawableAmount ? withdrawableAmount : dailyManagementLimitForStrategy;
 
         switchToLzChainWithoutExecutePendingOrPacketUpdate(ftmChainId);
         // creating new strategy
@@ -3760,11 +3778,7 @@ contract RootForkTest is LzForkTest {
 
         // adding port strategy token
         coreRootRouter.manageStrategyToken{value: 1 ether}(
-            address(strategyToken),
-            minimumReserveRatio,
-            address(this),
-            ftmChainId,
-            GasParams(300_000, 0)
+            address(strategyToken), minimumReserveRatio, address(this), ftmChainId, GasParams(300_000, 0)
         );
 
         // adding port stratey to the ftm branch
@@ -3781,7 +3795,7 @@ contract RootForkTest is LzForkTest {
         // swithcing to ftm chain for checking tokens
         switchToLzChain(ftmChainId);
         require(ftmPort.isStrategyToken(address(strategyToken)), "no token added");
-        require(ftmPort.isPortStrategy(address(strategy),address(strategyToken)), "no strategy added added");
+        require(ftmPort.isPortStrategy(address(strategy), address(strategyToken)), "no strategy added added");
 
         // swithcing to ftm chain for checking tokens
         switchToLzChain(ftmChainId);
@@ -3795,7 +3809,10 @@ contract RootForkTest is LzForkTest {
         vm.stopPrank();
 
         require(ftmPort.getStrategyTokenDebt(address(strategyToken)) == amountToWithdraw, "invalid amount");
-        require(ftmPort.getPortStrategyTokenDebt(address(strategy), address(strategyToken)) == amountToWithdraw, "invalid amount");
+        require(
+            ftmPort.getPortStrategyTokenDebt(address(strategy), address(strategyToken)) == amountToWithdraw,
+            "invalid amount"
+        );
 
         require(strategyToken.balanceOf(address(strategy)) == amountToWithdraw, "invalid amount");
 
@@ -3811,10 +3828,14 @@ contract RootForkTest is LzForkTest {
         vm.startPrank(address(strategy));
         ftmPort.manage(address(strategyToken), amountToWithdraw);
         vm.stopPrank();
-
     }
 
-    function _calculateWithdrawableAmount(uint256 ftmPortTokenBalance, uint256 minimumReserveRatio, uint256 divisor, uint256 strategyPreviousDebt) internal returns(uint256){
+    function _calculateWithdrawableAmount(
+        uint256 ftmPortTokenBalance,
+        uint256 minimumReserveRatio,
+        uint256 divisor,
+        uint256 strategyPreviousDebt
+    ) internal returns (uint256) {
         return ftmPortTokenBalance - ((ftmPortTokenBalance + strategyPreviousDebt) * minimumReserveRatio / divisor);
     }
 }
