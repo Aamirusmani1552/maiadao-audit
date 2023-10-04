@@ -184,6 +184,8 @@ contract CoreRootRouter is IRootRouter, Ownable {
      * @param _dstChainId Chain Id of the branch chain where the new Bridge Agent will be deployed.
      * @param _gParams Gas parameters for remote execution.
      */
+
+    // @audit it says to remove branch bridge agent but it only toggles it
     function removeBranchBridgeAgent(
         address _branchBridgeAgent,
         address _refundee,
@@ -196,6 +198,7 @@ contract CoreRootRouter is IRootRouter, Ownable {
         // Pack funcId into data
         bytes memory payload = abi.encodePacked(bytes1(0x04), params);
 
+        // @audit wrong comment
         //Add new global token to branch chain
         IBridgeAgent(bridgeAgentAddress).callOut{value: msg.value}(
             payable(_refundee), _refundee, _dstChainId, payload, _gParams
@@ -268,8 +271,7 @@ contract CoreRootRouter is IRootRouter, Ownable {
      * @param _dstChainId Chain Id of the branch chain where the new Bridge Agent will be deployed.
      * @param _gParams Gas parameters for remote execution.
      */
-
-    // @audit can be called by anyone. should this be called by a trusted party or anyone can call it?
+    // @audit-info test done
     function setCoreBranch(
         address _refundee,
         address _coreBranchRouter,
@@ -471,7 +473,6 @@ contract CoreRootRouter is IRootRouter, Ownable {
         uint8 _decimals,
         uint16 _srcChainId
     ) internal {
-        // @audit still not sure about the difference between global address and local address
         // @audit-info maybe check for global address and local address is done to prevent adding a htoken as a local token
         // Verify if the underlying address is already known by the branch or root chain
         if (IPort(rootPortAddress).isGlobalAddress(_underlyingAddress)) revert TokenAlreadyAdded();
@@ -483,7 +484,7 @@ contract CoreRootRouter is IRootRouter, Ownable {
         address newToken = address(IFactory(hTokenFactoryAddress).createToken(_name, _symbol, _decimals));
 
         // Update Registry
-        // @audit if both chain id and root chain id are same, then the global address and local address will be same
+        // @audit-info if both chain id and root chain id are same, then the global address and local address will be same
         IPort(rootPortAddress).setAddresses(
             newToken, (_srcChainId == rootChainId) ? newToken : _localAddress, _underlyingAddress, _srcChainId
         );
@@ -496,6 +497,7 @@ contract CoreRootRouter is IRootRouter, Ownable {
      *   @param _dstChainId local token's chain.
      *
      */
+    // @audit-info _glbalAddress on root chain, localAddress on branch chain newly created token
     function _setLocalToken(address _globalAddress, address _localAddress, uint16 _dstChainId) internal {
         // Verify if the token already added
         if (IPort(rootPortAddress).isLocalToken(_localAddress, _dstChainId)) revert TokenAlreadyAdded();

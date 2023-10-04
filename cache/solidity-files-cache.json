@@ -1659,7 +1659,7 @@
       }
     },
     "src/BaseBranchRouter.sol": {
-      "lastModificationDate": 1696058986979,
+      "lastModificationDate": 1696230341374,
       "contentHash": "205e1028390bc264c6350e32206c5368",
       "sourceName": "src/BaseBranchRouter.sol",
       "solcConfig": {
@@ -1708,7 +1708,7 @@
       }
     },
     "src/BranchBridgeAgent.sol": {
-      "lastModificationDate": 1696059337554,
+      "lastModificationDate": 1696230330883,
       "contentHash": "aadc524008ddf37211363a221a899b61",
       "sourceName": "src/BranchBridgeAgent.sol",
       "solcConfig": {
@@ -1826,8 +1826,8 @@
       }
     },
     "src/BranchPort.sol": {
-      "lastModificationDate": 1695993879343,
-      "contentHash": "a2f0dc23f9cfdde5072638262d0f3815",
+      "lastModificationDate": 1696402963142,
+      "contentHash": "28b86034ec613800ed09ad7481f93be5",
       "sourceName": "src/BranchPort.sol",
       "solcConfig": {
         "settings": {
@@ -1859,6 +1859,7 @@
         }
       },
       "imports": [
+        "lib/forge-std/src\\console2.sol",
         "lib/solady/src\\auth/Ownable.sol",
         "lib/solady/src\\utils/SafeTransferLib.sol",
         "lib/solmate/src\\tokens/ERC20.sol",
@@ -1875,7 +1876,7 @@
       }
     },
     "src/CoreBranchRouter.sol": {
-      "lastModificationDate": 1696018260873,
+      "lastModificationDate": 1696274666780,
       "contentHash": "ebc80a195b3a6866a0ad71b68f8e60c7",
       "sourceName": "src/CoreBranchRouter.sol",
       "solcConfig": {
@@ -1931,8 +1932,8 @@
       }
     },
     "src/CoreRootRouter.sol": {
-      "lastModificationDate": 1695989991537,
-      "contentHash": "b2f4e1c85aed2039887fd2e83497f74e",
+      "lastModificationDate": 1696276330722,
+      "contentHash": "4e929f2e9cf10355bae73da928bae4ce",
       "sourceName": "src/CoreRootRouter.sol",
       "solcConfig": {
         "settings": {
@@ -2096,8 +2097,8 @@
       }
     },
     "src/RootBridgeAgent.sol": {
-      "lastModificationDate": 1695989902970,
-      "contentHash": "4abbba1a7979920151df2c79f29411ce",
+      "lastModificationDate": 1696274180742,
+      "contentHash": "ff584d99134d254002c0a6819614774b",
       "sourceName": "src/RootBridgeAgent.sol",
       "solcConfig": {
         "settings": {
@@ -2130,6 +2131,7 @@
       },
       "imports": [
         "lib/ExcessivelySafeCall.sol",
+        "lib/forge-std/src\\console2.sol",
         "lib/openzeppelin-contracts/contracts\\token/ERC1155/IERC1155Receiver.sol",
         "lib/openzeppelin-contracts/contracts\\token/ERC1155/utils/ERC1155Receiver.sol",
         "lib/openzeppelin-contracts/contracts\\token/ERC721/IERC721Receiver.sol",
@@ -2161,8 +2163,8 @@
       }
     },
     "src/RootBridgeAgentExecutor.sol": {
-      "lastModificationDate": 1695989968904,
-      "contentHash": "d1f81a320e83fc4e4a7a9d581fae3327",
+      "lastModificationDate": 1696260612857,
+      "contentHash": "1658067c2c264e5dabaaecc8fd504401",
       "sourceName": "src/RootBridgeAgentExecutor.sol",
       "solcConfig": {
         "settings": {
@@ -2195,6 +2197,7 @@
       },
       "imports": [
         "lib/ExcessivelySafeCall.sol",
+        "lib/forge-std/src\\console2.sol",
         "lib/openzeppelin-contracts/contracts\\token/ERC1155/IERC1155Receiver.sol",
         "lib/openzeppelin-contracts/contracts\\token/ERC1155/utils/ERC1155Receiver.sol",
         "lib/openzeppelin-contracts/contracts\\token/ERC721/IERC721Receiver.sol",
@@ -2229,8 +2232,8 @@
       }
     },
     "src/RootPort.sol": {
-      "lastModificationDate": 1696102569315,
-      "contentHash": "9f959d9e7579e01ce9b6e95a232663d3",
+      "lastModificationDate": 1696317240104,
+      "contentHash": "59117e304c092c7919cace7a1fafcbf1",
       "sourceName": "src/RootPort.sol",
       "solcConfig": {
         "settings": {
@@ -2590,6 +2593,7 @@
       },
       "imports": [
         "lib/ExcessivelySafeCall.sol",
+        "lib/forge-std/src\\console2.sol",
         "lib/openzeppelin-contracts/contracts\\token/ERC1155/IERC1155Receiver.sol",
         "lib/openzeppelin-contracts/contracts\\token/ERC1155/utils/ERC1155Receiver.sol",
         "lib/openzeppelin-contracts/contracts\\token/ERC721/IERC721Receiver.sol",
@@ -2832,8 +2836,8 @@
       }
     },
     "src/interfaces/IBranchPort.sol": {
-      "lastModificationDate": 1695761115127,
-      "contentHash": "8dd33e0bd2a6b6d1b843ab5780ee42f1",
+      "lastModificationDate": 1696335095120,
+      "contentHash": "5709632b30de0ddb284afbaa844fc6c6",
       "sourceName": "src/interfaces/IBranchPort.sol",
       "solcConfig": {
         "settings": {
@@ -4693,8 +4697,8 @@
       }
     },
     "test/ulysses-omnichain/RootForkTest.t.sol": {
-      "lastModificationDate": 1696226951897,
-      "contentHash": "bafbf7270cbaebae2a0860d758fa80bb",
+      "lastModificationDate": 1696432461701,
+      "contentHash": "31ef5066b6f473743b2ca34c99954c9a",
       "sourceName": "test/ulysses-omnichain/RootForkTest.t.sol",
       "solcConfig": {
         "settings": {
@@ -4826,6 +4830,9 @@
       ],
       "versionRequirement": "^0.8.0",
       "artifacts": {
+        "MockERC20Token": {
+          "0.8.19+commit.7dd6d404.Windows.msvc": "RootForkTest.t.sol\\MockERC20Token.json"
+        },
         "MockPortStartegy": {
           "0.8.19+commit.7dd6d404.Windows.msvc": "RootForkTest.t.sol\\MockPortStartegy.json"
         },

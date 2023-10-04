@@ -9,6 +9,7 @@ import {VirtualAccount, PayableCall} from "../../src/VirtualAccount.sol";
 import {IRootPort} from "../../src/interfaces/IRootPort.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {ERC721} from "solmate/tokens/ERC721.sol";
+import {IBranchPort} from "../../src/interfaces/IBranchPort.sol";
 
 pragma solidity ^0.8.0;
 
@@ -2957,7 +2958,7 @@ contract RootForkTest is LzForkTest {
     }
 
     // @audit passed
-    function test_UserWillLostTokenWhenBridgeOut() public {
+    function test_UserWillLostTokenWhenBridgeOutToCoreRootRouter() public {
         uint256 totalSupply = 100_000_000 ether; // 100 million tokens
         address user = makeAddr("Bob");
         uint256 userBalance = 1000 ether;
@@ -3371,11 +3372,464 @@ contract RootForkTest is LzForkTest {
         require(newNFTToken.ownerOf(tokenId) == attacker, "No you are not");
         console2.log("\tTest passed successfully");
     }
+
+    function test_SetBranchBridgeAgentAndRouter() public {
+        switchToLzChainWithoutExecutePendingOrPacketUpdate(rootChainId);
+        address newCoreBranchRouter = makeAddr("coreBranchRouter");
+        address newCoreBranchBridgeAgent = makeAddr("coreBridgeAgent");
+
+        vm.deal(address(this), 20 ether);
+        rootPort.setCoreBranchRouter{value: 10 ether}(
+            address(this), newCoreBranchRouter, newCoreBranchBridgeAgent, ftmChainId, GasParams(2_000_000, 0)
+        );
+
+        switchToLzChain(ftmChainId);
+
+        address branchRouterAddress = ftmPort.coreBranchRouterAddress();
+        require(ftmPort.isBridgeAgent(newCoreBranchBridgeAgent), "not added");
+        require(newCoreBranchRouter == branchRouterAddress, "invalid branch router");
+    }
+
+    function test_addGlobalToken() public {
+        switchToLzChainWithoutExecutePendingOrPacketUpdate(ftmChainId);
+
+        // cretaing new underlying token on ftm chain
+        MockERC20Token newToken = new MockERC20Token("Test Token", "TEST", 18);
+
+        // add local token to the root chain
+        _addLocalToken(address(newToken));
+
+        // updatint packets on root chain
+        switchToLzChain(rootChainId);
+
+        // adding the local token on the chain
+        switchToLzChain(ftmChainId);
+
+        GasParams[3] memory gasParams;
+
+        gasParams[0] = GasParams(2_000_000, 20e10);
+        gasParams[1] = GasParams(2_000_000, 20e10);
+        gasParams[2] = GasParams(2_000_000, 20e10);
+
+        vm.deal(address(this), 20 ether);
+        ftmCoreRouter.addGlobalToken{value: 20 ether}(address(newFtmAssetGlobalAddress), avaxChainId, gasParams);
+
+        // updatint packets on avax chain
+        switchToLzChain(avaxChainId);
+        switchToLzChain(rootChainId);
+
+        address LocalTokenOnAvax = rootPort.getLocalTokenFromGlobal(address(newFtmAssetGlobalAddress), ftmChainId);
+        address globalTokenOnRoot = address(newFtmAssetGlobalAddress);
+        address globalTokenSet = rootPort.getGlobalTokenFromLocal(address(LocalTokenOnAvax), ftmChainId);
+
+        require(LocalTokenOnAvax != address(0), "invalid global token");
+        require(globalTokenOnRoot == globalTokenSet, "invalid global token");
+    }
+
+    function test_addEcosystemToken() public {
+        switchToLzChainWithoutExecutePendingOrPacketUpdate(rootChainId);
+
+        // cretaing new underlying token on ftm chain
+        MockERC20Token newEcosystemToken = new MockERC20Token("Test Token", "TEST", 18);
+
+        rootPort.addEcosystemToken(address(newEcosystemToken));
+
+        require(
+            rootPort.getLocalTokenFromGlobal(address(newEcosystemToken), rootChainId)
+                == rootPort.getGlobalTokenFromLocal(address(newEcosystemToken), rootChainId),
+            "invalid token"
+        );
+        require(
+            rootPort.getGlobalTokenFromLocal(address(newEcosystemToken), rootChainId) == address(newEcosystemToken),
+            "invalid token"
+        );
+        require(
+            rootPort.getLocalTokenFromGlobal(address(newEcosystemToken), rootChainId) == address(newEcosystemToken),
+            "invalid token"
+        );
+        require(rootPort.isGlobalAddress(address(newEcosystemToken)), "invalid token");
+    }
+
+    function test_toggleBridgeAgentFactory() public {
+        switchToLzChainWithoutExecutePendingOrPacketUpdate(rootChainId);
+        // rootBridgeAgentFactory
+        require(rootPort.isBridgeAgentFactory(address(rootBridgeAgentFactory)), "invalid bridge agent factory");
+
+        rootPort.toggleBridgeAgentFactory(address(rootBridgeAgentFactory));
+
+        require(!rootPort.isBridgeAgentFactory(address(rootBridgeAgentFactory)), "invalid bridge agent factory");
+    }
+
+    function test_toggleBridgeAgent() public {
+        switchToLzChainWithoutExecutePendingOrPacketUpdate(rootChainId);
+        // rootBridgeAgentFactory
+        require(rootPort.isBridgeAgent(address(coreRootBridgeAgent)), "invalid bridge agent factory");
+
+        rootPort.toggleBridgeAgent(address(coreRootBridgeAgent));
+
+        require(!rootPort.isBridgeAgent(address(coreRootBridgeAgent)), "invalid bridge agent factory");
+    }
+
+
+    function testFuzz_manageStrategyWithoutStrategyPreviousDebt(uint256 _ftmPortTokenBalance) public {
+        vm.assume(_ftmPortTokenBalance > 1 ether && _ftmPortTokenBalance < 1_000_000 ether);
+        
+        uint256 dailyManagementLimitForStrategy = 250 ether;
+        uint256 minimumReserveRatio = 3e3;
+        uint256 divisor = 1e4;
+        uint256 ftmPortTokenBalance = _ftmPortTokenBalance;
+        uint256 withdrawableAmount = ftmPortTokenBalance - (ftmPortTokenBalance * minimumReserveRatio / divisor);
+        uint256 amountToWithdraw = dailyManagementLimitForStrategy > withdrawableAmount ? withdrawableAmount : dailyManagementLimitForStrategy;
+
+        switchToLzChainWithoutExecutePendingOrPacketUpdate(ftmChainId);
+        // creating new strategy
+        MockPortStartegy strategy = new MockPortStartegy();
+
+        // creating new tokens for the strategy
+        MockERC20Token strategyToken = new MockERC20Token("Test strategy token", "TEST", 18);
+
+        // switching to root chain for adding tokens and strategy
+        switchToLzChain(rootChainId);
+        // Get some gas
+        vm.deal(address(this), 2 ether);
+
+        // adding port strategy token
+        coreRootRouter.manageStrategyToken{value: 1 ether}(
+            address(strategyToken),
+            minimumReserveRatio,
+            address(this),
+            ftmChainId,
+            GasParams(300_000, 0)
+        );
+
+        // adding port stratey to the ftm branch
+        coreRootRouter.managePortStrategy{value: 1 ether}(
+            address(strategy),
+            address(strategyToken),
+            dailyManagementLimitForStrategy,
+            false,
+            address(this),
+            ftmChainId,
+            GasParams(300_000, 0)
+        );
+
+        // swithcing to ftm chain for checking tokens
+        switchToLzChain(ftmChainId);
+        require(ftmPort.isStrategyToken(address(strategyToken)), "no token added");
+        require(ftmPort.isPortStrategy(address(strategy),address(strategyToken)), "no strategy added added");
+
+        // swithcing to ftm chain for checking tokens
+        switchToLzChain(ftmChainId);
+
+        // minting some tokens to ftmPort for testing
+        strategyToken.mint(address(ftmPort), ftmPortTokenBalance);
+
+        // strategy withdraw the tokens from the port
+        vm.startPrank(address(strategy));
+        ftmPort.manage(address(strategyToken), amountToWithdraw);
+        vm.stopPrank();
+
+        require(ftmPort.getStrategyTokenDebt(address(strategyToken)) == amountToWithdraw, "invalid amount");
+        require(ftmPort.getPortStrategyTokenDebt(address(strategy), address(strategyToken)) == amountToWithdraw, "invalid amount");
+
+        require(strategyToken.balanceOf(address(strategy)) == amountToWithdraw, "invalid amount");
+
+        require(strategyToken.balanceOf(address(ftmPort)) == ftmPortTokenBalance - amountToWithdraw, "invalid amount");
+    }
+
+    function testFuzz_manageStrategyWithoutStrategyPreviousDebtAndWithSmallPortBalance(uint256 _ftmPortTokenBalance) public {
+        vm.assume(_ftmPortTokenBalance > 0 && _ftmPortTokenBalance < 1 ether );
+        
+        uint256 dailyManagementLimitForStrategy = 250 ether;
+        uint256 minimumReserveRatio = 3e3;
+        uint256 divisor = 1e4;
+        uint256 ftmPortTokenBalance = _ftmPortTokenBalance;
+        uint256 withdrawableAmount = ftmPortTokenBalance - (ftmPortTokenBalance * minimumReserveRatio / divisor);
+        uint256 amountToWithdraw = dailyManagementLimitForStrategy > withdrawableAmount ? withdrawableAmount : dailyManagementLimitForStrategy;
+
+        switchToLzChainWithoutExecutePendingOrPacketUpdate(ftmChainId);
+        // creating new strategy
+        MockPortStartegy strategy = new MockPortStartegy();
+
+        // creating new tokens for the strategy
+        MockERC20Token strategyToken = new MockERC20Token("Test strategy token", "TEST", 18);
+
+        // switching to root chain for adding tokens and strategy
+        switchToLzChain(rootChainId);
+        // Get some gas
+        vm.deal(address(this), 2 ether);
+
+        // adding port strategy token
+        coreRootRouter.manageStrategyToken{value: 1 ether}(
+            address(strategyToken),
+            minimumReserveRatio,
+            address(this),
+            ftmChainId,
+            GasParams(300_000, 0)
+        );
+
+        // adding port stratey to the ftm branch
+        coreRootRouter.managePortStrategy{value: 1 ether}(
+            address(strategy),
+            address(strategyToken),
+            dailyManagementLimitForStrategy,
+            false,
+            address(this),
+            ftmChainId,
+            GasParams(300_000, 0)
+        );
+
+        // swithcing to ftm chain for checking tokens
+        switchToLzChain(ftmChainId);
+        require(ftmPort.isStrategyToken(address(strategyToken)), "no token added");
+        require(ftmPort.isPortStrategy(address(strategy),address(strategyToken)), "no strategy added added");
+
+        // swithcing to ftm chain for checking tokens
+        switchToLzChain(ftmChainId);
+
+        // minting some tokens to ftmPort for testing
+        strategyToken.mint(address(ftmPort), ftmPortTokenBalance);
+
+        // strategy withdraw the tokens from the port
+        vm.startPrank(address(strategy));
+        ftmPort.manage(address(strategyToken), amountToWithdraw);
+        vm.stopPrank();
+
+        require(ftmPort.getStrategyTokenDebt(address(strategyToken)) == amountToWithdraw, "invalid amount");
+        require(ftmPort.getPortStrategyTokenDebt(address(strategy), address(strategyToken)) == amountToWithdraw, "invalid amount");
+
+        require(strategyToken.balanceOf(address(strategy)) == amountToWithdraw, "invalid amount");
+
+        require(strategyToken.balanceOf(address(ftmPort)) == ftmPortTokenBalance - amountToWithdraw, "invalid amount");
+    }
+
+    function testFuzz_manageStrategyWithoutStrategyPreviousDebtAndDifferntPercentagesAndSmallBalance(uint256 _ftmPortTokenBalance, uint256 _minimumReserveRation) public {
+        vm.assume(_ftmPortTokenBalance > 0 && _ftmPortTokenBalance < 1 ether );
+        vm.assume(_minimumReserveRation >= 3e3 &&  _minimumReserveRation < 1e4);
+        
+        uint256 dailyManagementLimitForStrategy = 250 ether;
+        uint256 minimumReserveRatio = uint256(_minimumReserveRation);
+        uint256 divisor = 1e4;
+        uint256 ftmPortTokenBalance = _ftmPortTokenBalance;
+        uint256 withdrawableAmount = ftmPortTokenBalance - (ftmPortTokenBalance * minimumReserveRatio / divisor);
+        uint256 amountToWithdraw = dailyManagementLimitForStrategy > withdrawableAmount ? withdrawableAmount : dailyManagementLimitForStrategy;
+
+        switchToLzChainWithoutExecutePendingOrPacketUpdate(ftmChainId);
+        // creating new strategy
+        MockPortStartegy strategy = new MockPortStartegy();
+
+        // creating new tokens for the strategy
+        MockERC20Token strategyToken = new MockERC20Token("Test strategy token", "TEST", 18);
+
+        // switching to root chain for adding tokens and strategy
+        switchToLzChain(rootChainId);
+        // Get some gas
+        vm.deal(address(this), 2 ether);
+
+        // adding port strategy token
+        coreRootRouter.manageStrategyToken{value: 1 ether}(
+            address(strategyToken),
+            minimumReserveRatio,
+            address(this),
+            ftmChainId,
+            GasParams(300_000, 0)
+        );
+
+        // adding port stratey to the ftm branch
+        coreRootRouter.managePortStrategy{value: 1 ether}(
+            address(strategy),
+            address(strategyToken),
+            dailyManagementLimitForStrategy,
+            false,
+            address(this),
+            ftmChainId,
+            GasParams(300_000, 0)
+        );
+
+        // swithcing to ftm chain for checking tokens
+        switchToLzChain(ftmChainId);
+        require(ftmPort.isStrategyToken(address(strategyToken)), "no token added");
+        require(ftmPort.isPortStrategy(address(strategy),address(strategyToken)), "no strategy added added");
+
+        // swithcing to ftm chain for checking tokens
+        switchToLzChain(ftmChainId);
+
+        // minting some tokens to ftmPort for testing
+        strategyToken.mint(address(ftmPort), ftmPortTokenBalance);
+
+        // strategy withdraw the tokens from the port
+        vm.startPrank(address(strategy));
+        ftmPort.manage(address(strategyToken), amountToWithdraw);
+        vm.stopPrank();
+
+        require(ftmPort.getStrategyTokenDebt(address(strategyToken)) == amountToWithdraw, "invalid amount");
+        require(ftmPort.getPortStrategyTokenDebt(address(strategy), address(strategyToken)) == amountToWithdraw, "invalid amount");
+
+        require(strategyToken.balanceOf(address(strategy)) == amountToWithdraw, "invalid amount");
+
+        require(strategyToken.balanceOf(address(ftmPort)) == ftmPortTokenBalance - amountToWithdraw, "invalid amount");
+    }
+
+    function testFuzz_manageStrategyWithoutStrategyPreviousDebtAndDifferntPercentagesAndBigBalance(uint256 _ftmPortTokenBalance, uint256 _minimumReserveRation) public {
+        vm.assume(_ftmPortTokenBalance > 1 ether && _ftmPortTokenBalance < 1_000_000 ether );
+        vm.assume(_minimumReserveRation >= 3e3 &&  _minimumReserveRation < 1e4);
+        
+        uint256 dailyManagementLimitForStrategy = 250 ether;
+        uint256 minimumReserveRatio = uint256(_minimumReserveRation);
+        uint256 divisor = 1e4;
+        uint256 ftmPortTokenBalance = _ftmPortTokenBalance;
+        uint256 withdrawableAmount = ftmPortTokenBalance - (ftmPortTokenBalance * minimumReserveRatio / divisor);
+        uint256 amountToWithdraw = dailyManagementLimitForStrategy > withdrawableAmount ? withdrawableAmount : dailyManagementLimitForStrategy;
+
+        switchToLzChainWithoutExecutePendingOrPacketUpdate(ftmChainId);
+        // creating new strategy
+        MockPortStartegy strategy = new MockPortStartegy();
+
+        // creating new tokens for the strategy
+        MockERC20Token strategyToken = new MockERC20Token("Test strategy token", "TEST", 18);
+
+        // switching to root chain for adding tokens and strategy
+        switchToLzChain(rootChainId);
+        // Get some gas
+        vm.deal(address(this), 2 ether);
+
+        // adding port strategy token
+        coreRootRouter.manageStrategyToken{value: 1 ether}(
+            address(strategyToken),
+            minimumReserveRatio,
+            address(this),
+            ftmChainId,
+            GasParams(300_000, 0)
+        );
+
+        // adding port stratey to the ftm branch
+        coreRootRouter.managePortStrategy{value: 1 ether}(
+            address(strategy),
+            address(strategyToken),
+            dailyManagementLimitForStrategy,
+            false,
+            address(this),
+            ftmChainId,
+            GasParams(300_000, 0)
+        );
+
+        // swithcing to ftm chain for checking tokens
+        switchToLzChain(ftmChainId);
+        require(ftmPort.isStrategyToken(address(strategyToken)), "no token added");
+        require(ftmPort.isPortStrategy(address(strategy),address(strategyToken)), "no strategy added added");
+
+        // swithcing to ftm chain for checking tokens
+        switchToLzChain(ftmChainId);
+
+        // minting some tokens to ftmPort for testing
+        strategyToken.mint(address(ftmPort), ftmPortTokenBalance);
+
+        // strategy withdraw the tokens from the port
+        vm.startPrank(address(strategy));
+        ftmPort.manage(address(strategyToken), amountToWithdraw);
+        vm.stopPrank();
+
+        require(ftmPort.getStrategyTokenDebt(address(strategyToken)) == amountToWithdraw, "invalid amount");
+        require(ftmPort.getPortStrategyTokenDebt(address(strategy), address(strategyToken)) == amountToWithdraw, "invalid amount");
+
+        require(strategyToken.balanceOf(address(strategy)) == amountToWithdraw, "invalid amount");
+
+        require(strategyToken.balanceOf(address(ftmPort)) == ftmPortTokenBalance - amountToWithdraw, "invalid amount");
+    }
+
+    function test_manageStrategyWithMoreThanOneCallInSameDay() public {
+        uint256 dailyManagementLimitForStrategy = 2500 ether;
+        uint256 minimumReserveRatio = 3e3;
+        uint256 divisor = 1e4;
+        uint256 ftmPortTokenBalance = 1000 ether;
+        uint256 strategyPerviousDebt = 0;
+        uint256 withdrawableAmount = _calculateWithdrawableAmount(ftmPortTokenBalance, minimumReserveRatio, divisor, strategyPerviousDebt);
+        uint256 amountToWithdraw = dailyManagementLimitForStrategy > withdrawableAmount ? withdrawableAmount : dailyManagementLimitForStrategy;
+
+        switchToLzChainWithoutExecutePendingOrPacketUpdate(ftmChainId);
+        // creating new strategy
+        MockPortStartegy strategy = new MockPortStartegy();
+
+        // creating new tokens for the strategy
+        MockERC20Token strategyToken = new MockERC20Token("Test strategy token", "TEST", 18);
+
+        // switching to root chain for adding tokens and strategy
+        switchToLzChain(rootChainId);
+        // Get some gas
+        vm.deal(address(this), 2 ether);
+
+        // adding port strategy token
+        coreRootRouter.manageStrategyToken{value: 1 ether}(
+            address(strategyToken),
+            minimumReserveRatio,
+            address(this),
+            ftmChainId,
+            GasParams(300_000, 0)
+        );
+
+        // adding port stratey to the ftm branch
+        coreRootRouter.managePortStrategy{value: 1 ether}(
+            address(strategy),
+            address(strategyToken),
+            dailyManagementLimitForStrategy,
+            false,
+            address(this),
+            ftmChainId,
+            GasParams(300_000, 0)
+        );
+
+        // swithcing to ftm chain for checking tokens
+        switchToLzChain(ftmChainId);
+        require(ftmPort.isStrategyToken(address(strategyToken)), "no token added");
+        require(ftmPort.isPortStrategy(address(strategy),address(strategyToken)), "no strategy added added");
+
+        // swithcing to ftm chain for checking tokens
+        switchToLzChain(ftmChainId);
+
+        // minting some tokens to ftmPort for testing
+        strategyToken.mint(address(ftmPort), ftmPortTokenBalance);
+
+        // strategy withdraw the tokens from the port
+        vm.startPrank(address(strategy));
+        ftmPort.manage(address(strategyToken), amountToWithdraw);
+        vm.stopPrank();
+
+        require(ftmPort.getStrategyTokenDebt(address(strategyToken)) == amountToWithdraw, "invalid amount");
+        require(ftmPort.getPortStrategyTokenDebt(address(strategy), address(strategyToken)) == amountToWithdraw, "invalid amount");
+
+        require(strategyToken.balanceOf(address(strategy)) == amountToWithdraw, "invalid amount");
+
+        require(strategyToken.balanceOf(address(ftmPort)) == ftmPortTokenBalance - amountToWithdraw, "invalid amount");
+
+        // update the variables
+        strategyPerviousDebt = ftmPort.getPortStrategyTokenDebt(address(strategy), address(strategyToken));
+        // since all of the tokens has been spent for the day. it doesn't matter what we want to withdraw
+        amountToWithdraw = 1 ether;
+
+        // strategy withdraw the tokens from the port
+        vm.expectRevert(IBranchPort.InsufficientReserves.selector);
+        vm.startPrank(address(strategy));
+        ftmPort.manage(address(strategyToken), amountToWithdraw);
+        vm.stopPrank();
+
+    }
+
+    function _calculateWithdrawableAmount(uint256 ftmPortTokenBalance, uint256 minimumReserveRatio, uint256 divisor, uint256 strategyPreviousDebt) internal returns(uint256){
+        return ftmPortTokenBalance - ((ftmPortTokenBalance + strategyPreviousDebt) * minimumReserveRatio / divisor);
+    }
 }
 
 contract MockPortStartegy {
     function withdraw(address port, address token, uint256 amount) public {
         MockERC20(token).transfer(port, amount);
+    }
+}
+
+contract MockERC20Token is ERC20 {
+    constructor(string memory _name, string memory _symbol, uint8 _decimals) ERC20(_name, _symbol, _decimals) {}
+
+    function mint(address _to, uint256 _amount) public {
+        _mint(_to, _amount);
     }
 }
 

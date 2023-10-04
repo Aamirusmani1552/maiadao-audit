@@ -94,6 +94,7 @@ contract RootBridgeAgentExecutor is Ownable, BridgeAgentConstants {
         payable
         onlyOwner
     {
+        // @audit floating constants
         // Read Deposit Params
         DepositParams memory dParams = DepositParams({
             depositNonce: uint32(bytes4(_payload[PARAMS_START:PARAMS_TKN_START])),

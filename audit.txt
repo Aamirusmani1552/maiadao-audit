@@ -1,5 +1,6 @@
 -------High-----------
 1. safeTransferFrom is deprecated 
+2. There isn't a way to add router to virtual account
 
 -------Med------------
 

@@ -9,6 +9,7 @@ import {ILayerZeroEndpoint} from "./interfaces/ILayerZeroEndpoint.sol";
 
 import {IBranchBridgeAgent} from "./interfaces/IBranchBridgeAgent.sol";
 import {IERC20hTokenRoot} from "./interfaces/IERC20hTokenRoot.sol";
+import {console2} from "forge-std/console2.sol";
 
 import {BridgeAgentConstants} from "./interfaces/BridgeAgentConstants.sol";
 import {
@@ -838,6 +839,7 @@ contract RootBridgeAgent is IRootBridgeAgent, BridgeAgentConstants {
         // Check if call to remote chain
         if (_dstChainId != localChainId) {
             //Sends message to Layerzero Enpoint
+            console2.log("sending %s as fee", msg.value);
             ILayerZeroEndpoint(lzEndpointAddress).send{value: msg.value}(
                 _dstChainId,
                 getBranchBridgeAgentPath[_dstChainId],

@@ -11,6 +11,7 @@ import {IPortStrategy} from "./interfaces/IPortStrategy.sol";
 import {IBranchPort} from "./interfaces/IBranchPort.sol";
 
 import {ERC20hTokenBranch} from "./token/ERC20hTokenBranch.sol";
+import {console2} from "forge-std/console2.sol";
 
 /// @title Branch Port - Omnichain Token Management Contract
 /// @author MaiaDAO
@@ -146,10 +147,13 @@ contract BranchPort is Ownable, IBranchPort {
         uint256 _strategyTokenDebt = getStrategyTokenDebt[_token];
 
         // Check if request would surpass the tokens minimum reserves
-        if (_amount > _excessReserves(_strategyTokenDebt, _token)) revert InsufficientReserves();
+        uint256 excessReserves = _excessReserves(_strategyTokenDebt, _token);
+        console2.log("These are the excess reserves: %s", excessReserves);
+        if (_amount > excessReserves) revert InsufficientReserves();
 
         // Check if request would surpass the Port Strategy's daily limit
         _checkTimeLimit(_token, _amount);
+
 
         // Update Strategy Token Global Debt
         getStrategyTokenDebt[_token] = _strategyTokenDebt + _amount;
@@ -389,6 +393,7 @@ contract BranchPort is Ownable, IBranchPort {
     {
         if (!isStrategyToken[_token]) revert UnrecognizedStrategyToken();
         portStrategies.push(_portStrategy);
+        // @audit what if this is set to very large number
         strategyDailyLimitAmount[_portStrategy][_token] = _dailyManagementLimit;
         isPortStrategy[_portStrategy][_token] = true;
 
@@ -455,7 +460,7 @@ contract BranchPort is Ownable, IBranchPort {
         returns (uint256)
     {
         uint256 minReserves = _minimumReserves(_strategyTokenDebt, currBalance, _token);
-
+        console2.log("min Reserves required: %s", minReserves);
         unchecked {
             return currBalance < minReserves ? minReserves - currBalance : 0;
         }
@@ -487,7 +492,9 @@ contract BranchPort is Ownable, IBranchPort {
      */
     function _checkTimeLimit(address _token, uint256 _amount) internal {
         uint256 dailyLimit = strategyDailyLimitRemaining[msg.sender][_token];
+        console2.log("dailyLimit %s", dailyLimit);
         if (block.timestamp - lastManaged[msg.sender][_token] >= 1 days) {
+            console2.log("time since last manage: %s", block.timestamp - lastManaged[msg.sender][_token]);
             dailyLimit = strategyDailyLimitAmount[msg.sender][_token];
             unchecked {
                 lastManaged[msg.sender][_token] = (block.timestamp / 1 days) * 1 days;

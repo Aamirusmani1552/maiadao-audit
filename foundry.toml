@@ -6,3 +6,6 @@ solc = "0.8.19"
 
 # Necessary for testing
 gas_price = 10000
+
+[fuzz]
+runs = 256

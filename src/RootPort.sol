@@ -247,6 +247,7 @@ contract RootPort is Ownable, IRootPort {
         if (_underlyingAddress == address(0)) revert InvalidUnderlyingAddress();
 
         isGlobalAddress[_globalAddress] = true;
+        // @audit-info local hToken -> ftm -> global hToken
         getGlobalTokenFromLocal[_localAddress][_srcChainId] = _globalAddress;
         getLocalTokenFromGlobal[_globalAddress][_srcChainId] = _localAddress;
         getLocalTokenFromUnderlying[_underlyingAddress][_srcChainId] = _localAddress;
@@ -256,6 +257,9 @@ contract RootPort is Ownable, IRootPort {
     }
 
     /// @inheritdoc IRootPort
+    // global token = root global htoken
+    // localAddress = newly created htoken in branch destination chain
+    // @audit will this affect in anyway?
     function setLocalAddress(address _globalAddress, address _localAddress, uint256 _srcChainId)
         external
         override
@@ -263,6 +267,9 @@ contract RootPort is Ownable, IRootPort {
     {
         if (_localAddress == address(0)) revert InvalidLocalAddress();
 
+        // these two has been changed to the local address
+
+        // @audit-info local hToken -> avax -> global hToken
         getGlobalTokenFromLocal[_localAddress][_srcChainId] = _globalAddress;
         getLocalTokenFromGlobal[_globalAddress][_srcChainId] = _localAddress;
 
@@ -346,6 +353,7 @@ contract RootPort is Ownable, IRootPort {
                     VIRTUAL ACCOUNT MANAGEMENT FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    // @audit info tested by me
     /// @inheritdoc IRootPort
     function fetchVirtualAccount(address _user) external override returns (VirtualAccount account) {
         account = getUserAccount[_user];
@@ -357,7 +365,8 @@ contract RootPort is Ownable, IRootPort {
      * @param _user address of the user to associate a virtual account with.
      */
 
-    // @audit best practice not followed for internal function
+    // @audit-info tested by me: 1 QA found
+    // @audit best practice not followed for internal function name
     function addVirtualAccount(address _user) internal returns (VirtualAccount newAccount) {
         if (_user == address(0)) revert InvalidUserAddress();
 
@@ -367,6 +376,7 @@ contract RootPort is Ownable, IRootPort {
         emit VirtualAccountCreated(_user, address(newAccount));
     }
 
+    // @audit-info used to add and remove router for virtual account
     /// @inheritdoc IRootPort
     function toggleVirtualAccountApproved(VirtualAccount _userAccount, address _router)
         external
@@ -412,6 +422,7 @@ contract RootPort is Ownable, IRootPort {
                             ADMIN FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
+    // @audit-info tested by men
     /// @inheritdoc IRootPort
     function toggleBridgeAgent(address _bridgeAgent) external override onlyOwner {
         isBridgeAgent[_bridgeAgent] = !isBridgeAgent[_bridgeAgent];
@@ -419,6 +430,7 @@ contract RootPort is Ownable, IRootPort {
         emit BridgeAgentToggled(_bridgeAgent);
     }
 
+    // @audit-info tested by team
     /// @inheritdoc IRootPort
     function addBridgeAgentFactory(address _bridgeAgentFactory) external override onlyOwner {
         if (isBridgeAgentFactory[_bridgeAgentFactory]) revert AlreadyAddedBridgeAgentFactory();
@@ -429,6 +441,7 @@ contract RootPort is Ownable, IRootPort {
         emit BridgeAgentFactoryAdded(_bridgeAgentFactory);
     }
 
+    // @audit-info tested by me
     /// @inheritdoc IRootPort
     function toggleBridgeAgentFactory(address _bridgeAgentFactory) external override onlyOwner {
         isBridgeAgentFactory[_bridgeAgentFactory] = !isBridgeAgentFactory[_bridgeAgentFactory];
@@ -436,6 +449,7 @@ contract RootPort is Ownable, IRootPort {
         emit BridgeAgentFactoryToggled(_bridgeAgentFactory);
     }
 
+    // @audit-info tested by team
     /// @inheritdoc IRootPort
     function addNewChain(
         address _coreBranchBridgeAgentAddress,
@@ -481,6 +495,9 @@ contract RootPort is Ownable, IRootPort {
         emit NewChainAdded(_chainId);
     }
 
+    // @audit-info tokens that are tokens that governance adds to the system and don't have underlying token address in any branch
+    // @audit what someone has added a local token already with that eco token. that means no
+    // this function will give DoS. is this true?
     /// @inheritdoc IRootPort
     function addEcosystemToken(address _ecoTokenGlobalAddress) external override onlyOwner {
         // Check if token already added
@@ -507,6 +524,7 @@ contract RootPort is Ownable, IRootPort {
         emit EcosystemTokenAdded(_ecoTokenGlobalAddress);
     }
 
+    // @audit tested by team
     /// @inheritdoc IRootPort
     function setCoreRootRouter(address _coreRootRouter, address _coreRootBridgeAgent) external override onlyOwner {
         if (_coreRootRouter == address(0)) revert InvalidCoreRootRouter();
@@ -519,6 +537,7 @@ contract RootPort is Ownable, IRootPort {
         emit CoreRootSet(_coreRootRouter, _coreRootBridgeAgent);
     }
 
+    // @audit tested by team
     /// @inheritdoc IRootPort
     function setCoreBranchRouter(
         address _refundee,
@@ -537,6 +556,7 @@ contract RootPort is Ownable, IRootPort {
         emit CoreBranchSet(_coreBranchRouter, _coreBranchBridgeAgent, _dstChainId);
     }
 
+    // @audit tested by team
     /// @inheritdoc IRootPort
     function syncNewCoreBranchRouter(address _coreBranchRouter, address _coreBranchBridgeAgent, uint16 _dstChainId)
         external
