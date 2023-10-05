@@ -36,7 +36,7 @@ contract ERC20hTokenRoot is ERC20, Ownable, IERC20hTokenRoot {
         string memory _symbol,
         uint8 _decimals
     )
-        // @audit unnecessary concatenation
+        // @audit-info unnecessary concatenation
         ERC20(string(string.concat(_name)), string(string.concat(_symbol)), _decimals)
     {
         require(_rootPortAddress != address(0), "Root Port Address cannot be 0");

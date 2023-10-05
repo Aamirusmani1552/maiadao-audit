@@ -3868,3 +3868,709 @@ contract UniV3NFT is ERC721 {
         return "ipfs:://IpfsCidForTheUniswapV3NFT";
     }
 }
+
+contract MultiCallEnvironmentTest is LzForkTest {
+    using MulticallRootRouterHelper for MulticallRootRouter;
+    using RootBridgeAgentFactoryHelper for RootBridgeAgentFactory;
+    using CoreRootRouterHelper for CoreRootRouter;
+    using RootBridgeAgentFactoryHelper for RootBridgeAgentFactory;
+
+    //global and local tokens
+    address public newFtmAssetGlobalAddress;
+
+    address public newAvaxAssetFtmLocalToken;
+
+    //Arb
+    uint16 constant rootChainId = uint16(110);
+
+    //Avax
+    uint16 constant avaxChainId = uint16(106);
+
+    //     //Ftm
+    uint16 constant ftmChainId = uint16(112);
+
+    //// System contracts
+
+    // Root
+
+    RootPort rootPort;
+
+    ERC20hTokenRootFactory hTokenRootFactory;
+
+    RootBridgeAgentFactory rootBridgeAgentFactory;
+
+    RootBridgeAgent coreRootBridgeAgent;
+
+    RootBridgeAgent multicallRootBridgeAgent;
+
+    CoreRootRouter coreRootRouter;
+
+    MulticallRootRouter rootMulticallRouter;
+
+    // Arbitrum Branch
+
+    ArbitrumBranchPort arbitrumPort;
+
+    ArbitrumBranchBridgeAgentFactory arbitrumBranchBridgeAgentFactory;
+
+    ArbitrumBranchBridgeAgent arbitrumCoreBranchBridgeAgent;
+
+    ArbitrumBranchBridgeAgent arbitrumMulticallBranchBridgeAgent;
+
+    ArbitrumCoreBranchRouter arbitrumCoreBranchRouter;
+
+    BaseBranchRouter arbitrumMulticallRouter;
+
+    // Avax Branch
+
+    BranchPort avaxPort;
+
+    ERC20hTokenBranchFactory avaxHTokenFactory;
+
+    BranchBridgeAgentFactory avaxBranchBridgeAgentFactory;
+
+    BranchBridgeAgent avaxCoreBridgeAgent;
+
+    BranchBridgeAgent avaxMulticallBridgeAgent;
+
+    CoreBranchRouter avaxCoreRouter;
+
+    BaseBranchRouter avaxMulticallRouter;
+
+    // Ftm Branch
+
+    BranchPort ftmPort;
+
+    ERC20hTokenBranchFactory ftmHTokenFactory;
+
+    BranchBridgeAgentFactory ftmBranchBridgeAgentFactory;
+
+    BranchBridgeAgent ftmCoreBridgeAgent;
+
+    BranchBridgeAgent ftmMulticallBridgeAgent;
+
+    CoreBranchRouter ftmCoreRouter;
+
+    BaseBranchRouter ftmMulticallRouter;
+
+    // ERC20s from different chains.
+
+    address avaxMockAssethToken;
+
+    MockERC20 avaxMockAssetToken;
+
+    address ftmMockAssethToken;
+
+    MockERC20 ftmMockAssetToken;
+
+    ERC20hTokenRoot arbitrumMockAssethToken;
+
+    MockERC20 arbitrumMockToken;
+
+    // Mocks
+
+    address arbitrumGlobalToken;
+    address avaxGlobalToken;
+    address ftmGlobalToken;
+
+    address avaxWrappedNativeToken;
+    address ftmWrappedNativeToken;
+
+    address avaxLocalWrappedNativeToken;
+    address ftmLocalWrappedNativeToken;
+
+    address multicallAddress;
+
+    address nonFungiblePositionManagerAddress = address(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
+
+    address lzEndpointAddress = address(0x3c2269811836af69497E5F486A85D7316753cf62);
+    address lzEndpointAddressAvax = address(0x3c2269811836af69497E5F486A85D7316753cf62);
+    address lzEndpointAddressFtm = address(0xb6319cC6c8c27A8F5dAF0dD3DF91EA35C4720dd7);
+
+    address owner = address(this);
+
+    address dao = address(this);
+
+    function setUp() public override {
+        /////////////////////////////////
+        //         Fork Setup          //
+        /////////////////////////////////
+
+        // Set up default fork chains
+        console2.log("Adding Default Chains...");
+        setUpDefaultLzChains();
+        console2.log("Added Default Chains.");
+
+        /////////////////////////////////
+        //      Deploy Root Utils      //
+        /////////////////////////////////
+        console2.log("Deploying Root Contracts...");
+        switchToLzChainWithoutExecutePendingOrPacketUpdate(rootChainId);
+
+        multicallAddress = address(new Multicall2());
+
+        /////////////////////////////////
+        //    Deploy Root Contracts    //
+        /////////////////////////////////
+
+        _deployRoot();
+
+        /////////////////////////////////
+        //  Initialize Root Contracts  //
+        /////////////////////////////////
+
+        console2.log("Initializing Root Contracts...");
+
+        _initRoot();
+
+        /////////////////////////////////
+        //Deploy Local Branch Contracts//
+        /////////////////////////////////
+
+        console2.log("Deploying Arbitrum Local Branch Contracts...");
+
+        _deployLocalBranch();
+
+        //////////////////////////////////
+        // Deploy Avax Branch Contracts //
+        //////////////////////////////////
+
+        console2.log("Deploying Avalanche Branch Contracts...");
+
+        _test_deployAvaxBranch();
+
+        //////////////////////////////////
+        // Deploy Ftm Branch Contracts //
+        //////////////////////////////////
+
+        console2.log("Deploying Fantom Contracts...");
+
+        _test_deployFtmBranch();
+
+        /////////////////////////////
+        //  Add new branch chains  //
+        /////////////////////////////
+
+        console2.log("Adding new Branch Chains to Root...");
+
+        _test_addNewBranchChainsToRoot();
+
+        ///////////////////////////////////
+        //  Approve new Branches in Root  //
+        ///////////////////////////////////
+
+        _test_approveNewBranchesInRoot();
+
+        ///////////////////////////////////////
+        //  Add new branches to  Root Agents //
+        ///////////////////////////////////////
+
+        _test_addNewBranchesToRootAgents();
+
+        /////////////////////////////////////
+        //  Initialize new Branch Routers  //
+        /////////////////////////////////////
+
+        _test_initNewBranchRouters();
+
+        //////////////////////////////////////
+        //Deploy Underlying Tokens and Mocks//
+        //////////////////////////////////////
+
+        _test_deployUnderlyingTokensAndMocks();
+    }
+
+    function _deployRoot() internal {
+        (rootPort, rootBridgeAgentFactory, hTokenRootFactory, coreRootRouter, rootMulticallRouter) =
+            RootForkHelper._deployRoot(rootChainId, lzEndpointAddress, multicallAddress);
+    }
+
+    function _initRoot() internal {
+        (coreRootBridgeAgent, multicallRootBridgeAgent) = RootForkHelper._initRootWithMultiCall(
+            rootPort, rootBridgeAgentFactory, hTokenRootFactory, coreRootRouter, rootMulticallRouter
+        );
+    }
+
+    function _deployLocalBranch() internal {
+        (
+            arbitrumPort,
+            arbitrumMulticallRouter,
+            arbitrumCoreBranchRouter,
+            arbitrumBranchBridgeAgentFactory,
+            arbitrumCoreBranchBridgeAgent
+        ) = RootForkHelper._deployLocalBranch(rootChainId, rootPort, owner, rootBridgeAgentFactory, coreRootBridgeAgent);
+    }
+
+    function _test_deployAvaxBranch() internal {
+        _deployAvaxBranch();
+
+        // TODO: Tests
+    }
+
+    function _test_deployFtmBranch() internal {
+        _deployFtmBranch();
+
+        // TODO: Tests
+    }
+
+    function _test_addNewBranchChainsToRoot() internal {
+        _addNewBranchChainsToRoot();
+
+        check_addNewBranchChainsToRoot();
+    }
+
+    function _test_approveNewBranchesInRoot() internal {
+        _approveNewBranchesInRoot();
+
+        // TODO: Tests
+    }
+
+    function _test_addNewBranchesToRootAgents() internal {
+        _addNewBranchesToRootAgents();
+
+        // TODO: Tests
+    }
+
+    function _test_initNewBranchRouters() internal {
+        _initNewBranchRouters();
+
+        // TODO: Tests
+    }
+
+    function _test_deployUnderlyingTokensAndMocks() internal {
+        _deployUnderlyingTokensAndMocks();
+
+        // TODO: Tests
+    }
+
+    function _deployAvaxBranch() internal {
+        (
+            avaxPort,
+            avaxHTokenFactory,
+            avaxCoreRouter,
+            avaxWrappedNativeToken,
+            avaxBranchBridgeAgentFactory,
+            avaxMulticallRouter
+        ) = _deployBranch(
+            "Avalanche Ulysses ",
+            "avax-u",
+            rootChainId,
+            avaxChainId,
+            owner,
+            rootBridgeAgentFactory,
+            lzEndpointAddressAvax
+        );
+
+        (avaxCoreBridgeAgent, avaxLocalWrappedNativeToken) = _initBranch(
+            coreRootBridgeAgent,
+            avaxWrappedNativeToken,
+            avaxPort,
+            avaxHTokenFactory,
+            avaxCoreRouter,
+            avaxBranchBridgeAgentFactory
+        );
+    }
+
+    function _deployFtmBranch() internal {
+        (
+            ftmPort,
+            ftmHTokenFactory,
+            ftmCoreRouter,
+            ftmWrappedNativeToken,
+            ftmBranchBridgeAgentFactory,
+            ftmMulticallRouter
+        ) = _deployBranch(
+            "Fantom Ulysses ", "ftm-u", rootChainId, ftmChainId, owner, rootBridgeAgentFactory, lzEndpointAddressFtm
+        );
+
+        (ftmCoreBridgeAgent, ftmLocalWrappedNativeToken) = _initBranch(
+            coreRootBridgeAgent,
+            ftmWrappedNativeToken,
+            ftmPort,
+            ftmHTokenFactory,
+            ftmCoreRouter,
+            ftmBranchBridgeAgentFactory
+        );
+    }
+
+    function _deployBranch(
+        string memory _name,
+        string memory _symbol,
+        uint16 _rootChainId,
+        uint16 _branchChainId,
+        address _owner,
+        RootBridgeAgentFactory _rootBridgeAgentFactory,
+        address _lzEndpointAddressBranch
+    )
+        internal
+        returns (
+            BranchPort _branchPort,
+            ERC20hTokenBranchFactory _branchHTokenFactory,
+            CoreBranchRouter _branchCoreRouter,
+            address _branchWrappedNativeToken,
+            BranchBridgeAgentFactory _branchBridgeAgentFactory,
+            BaseBranchRouter _branchMulticallRouter
+        )
+    {
+        switchToLzChainWithoutExecutePendingOrPacketUpdate(_branchChainId);
+
+        _branchPort = new BranchPort(_owner);
+
+        _branchHTokenFactory = new ERC20hTokenBranchFactory(_rootChainId, address(_branchPort), _name, _symbol);
+
+        _branchCoreRouter = new CoreBranchRouter(address(_branchHTokenFactory));
+
+        _branchWrappedNativeToken = address(new WETH());
+
+        _branchBridgeAgentFactory = new BranchBridgeAgentFactory(
+            _branchChainId,
+            _rootChainId,
+            address(_rootBridgeAgentFactory),
+            _lzEndpointAddressBranch,
+            address(_branchCoreRouter),
+            address(_branchPort),
+            _owner
+        );
+
+        _branchMulticallRouter = new BaseBranchRouter();
+    }
+
+    function _initBranch(
+        RootBridgeAgent _coreRootBridgeAgent,
+        address _branchWrappedNativeToken,
+        BranchPort _branchPort,
+        ERC20hTokenBranchFactory _branchHTokenFactory,
+        CoreBranchRouter _branchCoreRouter,
+        BranchBridgeAgentFactory _branchBridgeAgentFactory
+    ) internal returns (BranchBridgeAgent _branchCoreBridgeAgent, address _branchLocalWrappedNativeToken) {
+        _branchHTokenFactory.initialize(_branchWrappedNativeToken, address(_branchCoreRouter));
+        _branchPort.initialize(address(_branchCoreRouter), address(_branchBridgeAgentFactory));
+
+        _branchBridgeAgentFactory.initialize(address(_coreRootBridgeAgent));
+
+        _branchCoreBridgeAgent = BranchBridgeAgent(payable(_branchPort.bridgeAgents(0)));
+        console2.log(address(_branchCoreBridgeAgent));
+
+        _branchCoreRouter.initialize(address(_branchCoreBridgeAgent));
+
+        _branchLocalWrappedNativeToken = address(_branchHTokenFactory.hTokens(0));
+    }
+
+    function _addNewBranchChainsToRoot() internal {
+        switchToLzChainWithoutExecutePendingOrPacketUpdate(rootChainId);
+
+        avaxGlobalToken = _addNewBranchChainToRoot(
+            hTokenRootFactory,
+            rootPort,
+            avaxCoreBridgeAgent,
+            avaxChainId,
+            "Avalanche",
+            "AVAX",
+            18,
+            avaxLocalWrappedNativeToken,
+            avaxWrappedNativeToken
+        );
+
+        ftmGlobalToken = _addNewBranchChainToRoot(
+            hTokenRootFactory,
+            rootPort,
+            ftmCoreBridgeAgent,
+            ftmChainId,
+            "Fantom Opera",
+            "FTM",
+            18,
+            ftmLocalWrappedNativeToken,
+            ftmWrappedNativeToken
+        );
+    }
+
+    function _addNewBranchChainToRoot(
+        ERC20hTokenRootFactory _hTokenRootFactory,
+        RootPort _rootPort,
+        BranchBridgeAgent _coreCranchBridgeAgent,
+        uint16 _branchChainId,
+        string memory _name,
+        string memory _symbol,
+        uint8 _decimals,
+        address _branchLocalWrappedNativeToken,
+        address _branchWrappedNativeToken
+    ) internal returns (address branchGlobalToken) {
+        uint256 hTokenIndex = _hTokenRootFactory.getHTokens().length;
+
+        _rootPort.addNewChain(
+            address(_coreCranchBridgeAgent),
+            _branchChainId,
+            _name,
+            _symbol,
+            _decimals,
+            _branchLocalWrappedNativeToken,
+            _branchWrappedNativeToken
+        );
+
+        branchGlobalToken = address(_hTokenRootFactory.hTokens(hTokenIndex));
+    }
+
+    function check_addNewBranchChainsToRoot() internal view {
+        check_addNewLocalToken(
+            rootPort, avaxChainId, avaxGlobalToken, avaxLocalWrappedNativeToken, avaxWrappedNativeToken
+        );
+
+        check_addNewLocalToken(rootPort, ftmChainId, ftmGlobalToken, ftmLocalWrappedNativeToken, ftmWrappedNativeToken);
+    }
+
+    function check_addNewLocalToken(
+        RootPort _rootPort,
+        uint16 _branchChainId,
+        address _rootGlobalToken,
+        address _branchLocalToken,
+        address _branchUnderlyingToken
+    ) internal view {
+        require(_rootPort.isGlobalAddress(_rootGlobalToken), "Should be Global Token");
+
+        require(
+            _rootPort.getGlobalTokenFromLocal(_branchLocalToken, _branchChainId) == _rootGlobalToken,
+            "Global Token should be connected to Local"
+        );
+
+        require(
+            _rootPort.getLocalTokenFromGlobal(_rootGlobalToken, _branchChainId) == _branchLocalToken,
+            "Local Token should be connected to Global"
+        );
+        require(
+            _rootPort.getUnderlyingTokenFromLocal(_branchLocalToken, _branchChainId) == _branchUnderlyingToken,
+            "Underlying Token should be connected to Local"
+        );
+    }
+
+    function _approveNewBranchesInRoot() internal {
+        rootPort.initializeCore(
+            address(coreRootBridgeAgent), address(arbitrumCoreBranchBridgeAgent), address(arbitrumPort)
+        );
+
+        multicallRootBridgeAgent.approveBranchBridgeAgent(rootChainId);
+
+        multicallRootBridgeAgent.approveBranchBridgeAgent(avaxChainId);
+
+        multicallRootBridgeAgent.approveBranchBridgeAgent(ftmChainId);
+    }
+
+    function _addNewBranchesToRootAgents() internal {
+        // Start the recorder necessary for packet tracking
+        console2.log("Initializing Fork Test Environment...");
+        vm.recordLogs();
+
+        console2.log("Adding new Branch Bridge Agents to Root Bridge Agents...");
+
+        vm.deal(address(this), 100 ether);
+
+        console2.log("Avax...");
+
+        coreRootRouter.addBranchToBridgeAgent{value: 10 ether}(
+            address(multicallRootBridgeAgent),
+            address(avaxBranchBridgeAgentFactory),
+            address(avaxMulticallRouter),
+            address(this),
+            avaxChainId,
+            [GasParams(6_000_000, 10 ether), GasParams(1_000_000, 0)]
+        );
+        console2.log("Switching to AVAX...");
+        //Switch Chain and Execute Incoming Packets
+        switchToLzChain(avaxChainId);
+        console2.log("DONE AVAX!");
+        console2.log("Switching back to ROOT...");
+        //Switch Chain and Execute Incoming Packets
+        switchToLzChain(rootChainId);
+        console2.log("DONE ROOT!");
+
+        vm.deal(address(this), 100 ether);
+
+        coreRootRouter.addBranchToBridgeAgent{value: 10 ether}(
+            address(multicallRootBridgeAgent),
+            address(ftmBranchBridgeAgentFactory),
+            address(ftmMulticallRouter),
+            address(this),
+            ftmChainId,
+            [GasParams(6_000_000, 15 ether), GasParams(1_000_000, 0)]
+        );
+
+        console2.log("GOING FTM");
+        //Switch Chain and Execute Incoming Packets
+        switchToLzChain(ftmChainId);
+        console2.log("DONE FTM");
+        console2.log("GOING ROOT");
+        this.switchToLzChain{gas: 1 ether}(rootChainId);
+        console2.log("DONE ROOT");
+
+        coreRootRouter.addBranchToBridgeAgent(
+            address(multicallRootBridgeAgent),
+            address(arbitrumBranchBridgeAgentFactory),
+            address(arbitrumMulticallRouter),
+            address(this),
+            rootChainId,
+            [GasParams(0, 0), GasParams(0, 0)]
+        );
+    }
+
+    function _initNewBranchRouters() internal {
+        console2.log("Initializing new Branch Routers...");
+
+        arbitrumMulticallBranchBridgeAgent = ArbitrumBranchBridgeAgent(payable(arbitrumPort.bridgeAgents(1)));
+        arbitrumMulticallRouter.initialize(address(arbitrumMulticallBranchBridgeAgent));
+
+        //Switch Chain and Execute Incoming Packets
+        switchToLzChain(avaxChainId);
+        avaxMulticallBridgeAgent = BranchBridgeAgent(payable(avaxPort.bridgeAgents(1)));
+        avaxMulticallRouter.initialize(address(avaxMulticallBridgeAgent));
+
+        //Switch Chain and Execute Incoming Packets
+        switchToLzChain(ftmChainId);
+        ftmMulticallBridgeAgent = BranchBridgeAgent(payable(ftmPort.bridgeAgents(1)));
+        ftmMulticallRouter.initialize(address(ftmMulticallBridgeAgent));
+    }
+
+    function _deployUnderlyingTokensAndMocks() internal {
+        //Switch Chain and Execute Incoming Packets
+        switchToLzChain(avaxChainId);
+        // avaxMockAssethToken = new MockERC20("hTOKEN-AVAX", "LOCAL hTOKEN FOR TOKEN IN AVAX", 18);
+        avaxMockAssetToken = new MockERC20("underlying token", "UNDER", 18);
+
+        //Switch Chain and Execute Incoming Packets
+        switchToLzChain(ftmChainId);
+        // ftmMockAssethToken = new MockERC20("hTOKEN-FTM", "LOCAL hTOKEN FOR TOKEN IN FMT", 18);
+        ftmMockAssetToken = new MockERC20("underlying token", "UNDER", 18);
+
+        //Switch Chain and Execute Incoming Packets
+        switchToLzChain(rootChainId);
+        //arbitrumMockAssethToken is global
+        arbitrumMockToken = new MockERC20("underlying token", "UNDER", 18);
+    }
+
+    fallback() external payable {}
+
+    receive() external payable {}
+
+    struct OutputParams {
+        address recipient;
+        address outputToken;
+        uint256 amountOut;
+        uint256 depositOut;
+    }
+
+    struct OutputMultipleParams {
+        address recipient;
+        address[] outputTokens;
+        uint256[] amountsOut;
+        uint256[] depositsOut;
+    }
+
+    function test_UserWillLostTokenWhenBridgeOutToMultiCoreRootRouter() public {
+        uint256 totalSupply = 100_000_000 ether; // 100 million tokens
+        address user = makeAddr("Bob");
+        uint256 userBalance = 1000 ether;
+
+        switchToLzChainWithoutExecutePendingOrPacketUpdate(ftmChainId);
+
+        // deploying new token on avax chain
+        // this will be our _underlying token
+        MockERC20 newToken = new MockERC20("TestToken", "TEST", 18);
+
+        // transfering some of this _underlying _tokne to user on fantom Chain
+        newToken.mint(user, userBalance);
+
+        // adding this new _underlying token to branch and root chain
+        _addLocalToken(address(newToken));
+
+        // getting global h token balances of the user and core root router
+        switchToLzChain(rootChainId);
+        uint256 userBalanceOfGlobalHTokenBeforeBridgeOut = MockERC20(newFtmAssetGlobalAddress).balanceOf(user);
+        uint256 coreRootRouterBalanceOfGlobalHTokenBeforeBridgeOut =
+            MockERC20(newFtmAssetGlobalAddress).balanceOf(address(coreRootRouter));
+
+        require(userBalanceOfGlobalHTokenBeforeBridgeOut == 0, "invalid amount");
+        require(coreRootRouterBalanceOfGlobalHTokenBeforeBridgeOut == 0, "invalid amount");
+
+        // making sure that we are on correct chain
+        switchToLzChainWithoutExecutePendingOrPacketUpdate(ftmChainId);
+
+        // bridging the token to the root
+        address receiverOnRoot = user;
+        uint256 bridgeOutAmount = 100 ether;
+        bytes memory payload = bytes("");
+        DepositInput memory depositInput = DepositInput({
+            hToken: address(ftmMockAssethToken), // local h token on branch chain
+            token: address(newToken), // underlying token
+            amount: bridgeOutAmount,
+            deposit: bridgeOutAmount
+        });
+
+        // transferring some ether to the user for gas payament
+        vm.deal(user, 20 ether);
+
+        // balances before deposit
+        uint256 userBalanceBefore = newToken.balanceOf(user);
+        uint256 branchPortBalanceBefore = newToken.balanceOf(address(ftmPort));
+
+        vm.startPrank(user);
+        // approving token for branch router
+        newToken.approve(address(ftmCoreRouter), bridgeOutAmount);
+
+        // call to bridge the tokens on root chain
+        ftmCoreRouter.callOutAndBridge{value: 20 ether}(payload, depositInput, GasParams(2_000_000, 0));
+
+        vm.stopPrank();
+
+        uint256 userBalanceAfter = newToken.balanceOf(user);
+        uint256 branchPortBalanceAfter = newToken.balanceOf(address(ftmPort));
+
+        // user should have sent bridged amount to the port
+        require(userBalanceBefore - userBalanceAfter == bridgeOutAmount, "invalid amount");
+
+        // branch port should get correct amount
+        console2.log("updated balance of branch port", branchPortBalanceAfter - branchPortBalanceBefore);
+        require(branchPortBalanceAfter - branchPortBalanceBefore == bridgeOutAmount, "invalid amount");
+
+        // switching to root chain to check we have correct balance
+        switchToLzChain(rootChainId);
+        uint256 userBalanceOfGlobalHToken = MockERC20(newFtmAssetGlobalAddress).balanceOf(user);
+        uint256 coreRootRouterBalanceOfGlobalHToken =
+            MockERC20(newFtmAssetGlobalAddress).balanceOf(address(coreRootRouter));
+
+        // all amount should be received by core Root router
+        require(coreRootRouterBalanceOfGlobalHToken == bridgeOutAmount, "invalid amount");
+
+        // user should have zero balance
+        require(userBalanceOfGlobalHToken == 0, "Don't lie! User got the amount");
+    }
+
+    function _addLocalToken(address _token) public {
+        //Switch Chain and Execute Incoming Packets
+        switchToLzChain(ftmChainId);
+
+        vm.deal(address(this), 10 ether);
+
+        ftmCoreRouter.addLocalToken{value: 10 ether}(address(_token), GasParams(2_000_000, 0));
+
+        //Switch Chain and Execute Incoming Packets
+        switchToLzChain(rootChainId);
+
+        ftmMockAssethToken = rootPort.getLocalTokenFromUnderlying(address(_token), ftmChainId);
+
+        newFtmAssetGlobalAddress = rootPort.getGlobalTokenFromLocal(ftmMockAssethToken, ftmChainId);
+
+        console2.log("New Global: ", newFtmAssetGlobalAddress);
+        console2.log("New Local: ", ftmMockAssethToken);
+
+        require(
+            rootPort.getGlobalTokenFromLocal(ftmMockAssethToken, ftmChainId) == newFtmAssetGlobalAddress,
+            "Token should be added"
+        );
+        require(
+            rootPort.getLocalTokenFromGlobal(newFtmAssetGlobalAddress, ftmChainId) == ftmMockAssethToken,
+            "Token should be added"
+        );
+        require(
+            rootPort.getUnderlyingTokenFromLocal(ftmMockAssethToken, ftmChainId) == address(_token),
+            "Token should be added"
+        );
+    }
+}

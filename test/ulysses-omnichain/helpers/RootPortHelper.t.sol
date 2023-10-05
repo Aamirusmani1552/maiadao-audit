@@ -46,6 +46,16 @@ library RootPortHelper {
         _rootPort.check_init(_rootBridgeAgentFactory, _coreRootRouter);
     }
 
+    function _initMultiCall(
+        RootPort _rootPort,
+        RootBridgeAgentFactory _rootBridgeAgentFactory,
+        MulticallRootRouter _coreRootRouter
+    ) internal {
+        _rootPort.initialize(address(_rootBridgeAgentFactory), address(_coreRootRouter));
+
+        _rootPort.check_initMultiCall(_rootBridgeAgentFactory, _coreRootRouter);
+    }
+
     function check_init(
         RootPort _rootPort,
         RootBridgeAgentFactory _rootBridgeAgentFactory,
@@ -54,6 +64,16 @@ library RootPortHelper {
         _rootPort.check_rootBridgeAgentFactory(0, _rootBridgeAgentFactory);
         _rootPort.check_isBridgeAgentFactory(_rootBridgeAgentFactory);
         _rootPort.check_coreRootRouter(_coreRootRouter);
+    }
+
+    function check_initMultiCall(
+        RootPort _rootPort,
+        RootBridgeAgentFactory _rootBridgeAgentFactory,
+        MulticallRootRouter _coreRootRouter
+    ) internal view {
+        _rootPort.check_rootBridgeAgentFactory(0, _rootBridgeAgentFactory);
+        _rootPort.check_isBridgeAgentFactory(_rootBridgeAgentFactory);
+        _rootPort.check_mulitCallCoreRootRouter(_coreRootRouter);
     }
 
     function check_rootBridgeAgentFactory(
@@ -78,6 +98,10 @@ library RootPortHelper {
     }
 
     function check_coreRootRouter(RootPort _rootPort, CoreRootRouter _coreRootRouter) internal view {
+        require(_rootPort.coreRootRouterAddress() == address(_coreRootRouter), "Incorrect RootPort CoreRootRouter");
+    }
+
+    function check_mulitCallCoreRootRouter(RootPort _rootPort, MulticallRootRouter _coreRootRouter) internal view {
         require(_rootPort.coreRootRouterAddress() == address(_coreRootRouter), "Incorrect RootPort CoreRootRouter");
     }
 

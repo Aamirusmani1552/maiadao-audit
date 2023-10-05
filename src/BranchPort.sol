@@ -154,7 +154,6 @@ contract BranchPort is Ownable, IBranchPort {
         // Check if request would surpass the Port Strategy's daily limit
         _checkTimeLimit(_token, _amount);
 
-
         // Update Strategy Token Global Debt
         getStrategyTokenDebt[_token] = _strategyTokenDebt + _amount;
         // Update Port Strategy Token Debt
@@ -300,9 +299,7 @@ contract BranchPort is Ownable, IBranchPort {
         uint256 length = _localAddresses.length;
 
         // Sanity Check input arrays
-        // @audit these checks have been made already. no need to check again
-        // only first check is necessary. the rest are redundant according to me for now
-        // going to keep this as it is until i found something contradictory
+        // @audit-info these checks have been made already. no need to check again: it caused big issue. so this is required
         if (length > 255) revert InvalidInputArrays();
         if (length != _underlyingAddresses.length) revert InvalidInputArrays();
         if (_underlyingAddresses.length != _amounts.length) revert InvalidInputArrays();
@@ -393,7 +390,7 @@ contract BranchPort is Ownable, IBranchPort {
     {
         if (!isStrategyToken[_token]) revert UnrecognizedStrategyToken();
         portStrategies.push(_portStrategy);
-        // @audit what if this is set to very large number
+        // @audit-info what if this is set to very large number: it is owner problem as he will call this also it can be updated anytime
         strategyDailyLimitAmount[_portStrategy][_token] = _dailyManagementLimit;
         isPortStrategy[_portStrategy][_token] = true;
 

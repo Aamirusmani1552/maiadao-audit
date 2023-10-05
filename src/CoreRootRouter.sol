@@ -136,7 +136,7 @@ contract CoreRootRouter is IRootRouter, Ownable {
         bytes memory payload = abi.encodePacked(bytes1(0x02), params);
 
         //Add new global token to branch chain
-        // @audit wait what. why the comment says add new golbal token?
+        // @audit-info wait what. why the comment says add new golbal token?
         IBridgeAgent(bridgeAgentAddress).callOut{value: msg.value}(
             payable(_refundee), _refundee, _dstChainId, payload, _gParams[0]
         );
@@ -185,7 +185,7 @@ contract CoreRootRouter is IRootRouter, Ownable {
      * @param _gParams Gas parameters for remote execution.
      */
 
-    // @audit it says to remove branch bridge agent but it only toggles it
+    // @audit-info it says to remove branch bridge agent but it only toggles it: that would be redundant
     function removeBranchBridgeAgent(
         address _branchBridgeAgent,
         address _refundee,
@@ -198,7 +198,7 @@ contract CoreRootRouter is IRootRouter, Ownable {
         // Pack funcId into data
         bytes memory payload = abi.encodePacked(bytes1(0x04), params);
 
-        // @audit wrong comment
+        // @audit-info wrong comment
         //Add new global token to branch chain
         IBridgeAgent(bridgeAgentAddress).callOut{value: msg.value}(
             payable(_refundee), _refundee, _dstChainId, payload, _gParams
@@ -281,7 +281,7 @@ contract CoreRootRouter is IRootRouter, Ownable {
     ) external payable {
         // Check caller is root port
         require(msg.sender == rootPortAddress, "Only root port can call");
-        // @audit address zero check not done
+        // @audit-info address zero check not done:know issue
         // Encode CallData
         bytes memory params = abi.encode(_coreBranchRouter, _coreBranchBridgeAgent);
 
@@ -345,7 +345,7 @@ contract CoreRootRouter is IRootRouter, Ownable {
 
         /// FUNC ID: 1 (_addGlobalToken)
         if (funcId == 0x01) {
-            // @audit unsafe cast from uint256 to uint16 for dstChainId.
+            // @audit-info unsafe cast from uint256 to uint16 for dstChainId: wouldn't be a problem since chain id would not be more than uint16's max value
             (address refundee, address globalAddress, uint16 dstChainId, GasParams[2] memory gasParams) =
                 abi.decode(_encodedData[1:], (address, address, uint16, GasParams[2]));
 
@@ -428,7 +428,7 @@ contract CoreRootRouter is IRootRouter, Ownable {
         }
 
         // Verify that it does not exist
-        // @audit check that global token is not already exist on the destination check
+        // @audit-info check that global token is not already exist on the destination check
         if (IPort(rootPortAddress).isGlobalToken(_globalAddress, _dstChainId)) {
             revert TokenAlreadyAdded();
         }
@@ -480,7 +480,7 @@ contract CoreRootRouter is IRootRouter, Ownable {
         if (IPort(rootPortAddress).isUnderlyingToken(_underlyingAddress, _srcChainId)) revert TokenAlreadyAdded();
 
         //Create a new global token
-        // @audit What if i pass the token with the same name and same symbol but different decimals?
+        // @audit-info What if i pass the token with the same name and same symbol but different decimals: should not be a problem since addresses are not names
         address newToken = address(IFactory(hTokenFactoryAddress).createToken(_name, _symbol, _decimals));
 
         // Update Registry

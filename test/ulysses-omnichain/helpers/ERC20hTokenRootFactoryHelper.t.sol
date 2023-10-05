@@ -54,12 +54,36 @@ library ERC20hTokenRootFactoryHelper {
         _hTokenRootFactory.check_init(_coreRootRouter);
     }
 
+    function _initMultiCall(ERC20hTokenRootFactory _hTokenRootFactory, MulticallRootRouter _coreRootRouter) internal {
+        _hTokenRootFactory.initialize(address(_coreRootRouter));
+
+        _hTokenRootFactory.check_initMultiCall(_coreRootRouter);
+    }
+
     function check_init(ERC20hTokenRootFactory _hTokenRootFactory, CoreRootRouter _coreRootRouter) internal view {
         _hTokenRootFactory.check_coreRootRouter(_coreRootRouter);
         _hTokenRootFactory.check_owner(address(0));
     }
 
+    function check_initMultiCall(ERC20hTokenRootFactory _hTokenRootFactory, MulticallRootRouter _coreRootRouter)
+        internal
+        view
+    {
+        _hTokenRootFactory.check_coreRootRouter(_coreRootRouter);
+        _hTokenRootFactory.check_owner(address(0));
+    }
+
     function check_coreRootRouter(ERC20hTokenRootFactory _hTokenRootFactory, CoreRootRouter _coreRootRouter)
+        internal
+        view
+    {
+        require(
+            _hTokenRootFactory.coreRootRouterAddress() == address(_coreRootRouter),
+            "Incorrect ERC20hTokenRootFactory CoreRootRouter"
+        );
+    }
+
+    function check_coreRootRouter(ERC20hTokenRootFactory _hTokenRootFactory, MulticallRootRouter _coreRootRouter)
         internal
         view
     {

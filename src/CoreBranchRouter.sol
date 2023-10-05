@@ -29,7 +29,7 @@ contract CoreBranchRouter is ICoreBranchRouter, BaseBranchRouter {
      * @param _hTokenFactoryAddress Branch hToken Factory Address.
      */
     constructor(address _hTokenFactoryAddress) BaseBranchRouter() {
-        // @audit check for the address zero is not done
+        // @audit-info check for the address zero is not done: known issue
         hTokenFactoryAddress = _hTokenFactoryAddress;
     }
 
@@ -47,7 +47,7 @@ contract CoreBranchRouter is ICoreBranchRouter, BaseBranchRouter {
         payable
     {
         // Encode Call Data
-        // @audit does this encode checked on the receiving end
+        // @audit-info does this encode checked on the receiving end : checked
         // @audit-info the arguments will be loosely packed with padding
         bytes memory params = abi.encode(msg.sender, _globalAddress, _dstChainId, [_gParams[1], _gParams[2]]);
 

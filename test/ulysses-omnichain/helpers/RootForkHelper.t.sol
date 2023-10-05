@@ -65,6 +65,26 @@ library RootForkHelper {
         _rootMulticallRouter._init(_multicallRootBridgeAgent);
     }
 
+    function _initRootWithMultiCall(
+        RootPort _rootPort,
+        RootBridgeAgentFactory _rootBridgeAgentFactory,
+        ERC20hTokenRootFactory _hTokenRootFactory,
+        CoreRootRouter _coreRootRouter,
+        MulticallRootRouter _rootMulticallRouter
+    ) internal returns (RootBridgeAgent _coreRootBridgeAgent, RootBridgeAgent _multicallRootBridgeAgent) {
+        _rootPort._initMultiCall(_rootBridgeAgentFactory, _rootMulticallRouter);
+
+        _hTokenRootFactory._initMultiCall(_rootMulticallRouter);
+
+        _coreRootBridgeAgent = _rootBridgeAgentFactory._createRootBridgeAgent(address(_rootMulticallRouter));
+
+        _multicallRootBridgeAgent = _rootBridgeAgentFactory._createRootBridgeAgent(address(_rootMulticallRouter));
+
+        _coreRootRouter._init(_coreRootBridgeAgent, _hTokenRootFactory);
+
+        _rootMulticallRouter._init(_multicallRootBridgeAgent);
+    }
+
     function _deployLocalBranch(
         uint16 _rootChainId,
         RootPort _rootPort,

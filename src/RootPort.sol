@@ -259,7 +259,7 @@ contract RootPort is Ownable, IRootPort {
     /// @inheritdoc IRootPort
     // global token = root global htoken
     // localAddress = newly created htoken in branch destination chain
-    // @audit will this affect in anyway?
+    // @audit-info will this affect in anyway: not that i know of
     function setLocalAddress(address _globalAddress, address _localAddress, uint256 _srcChainId)
         external
         override
@@ -353,7 +353,7 @@ contract RootPort is Ownable, IRootPort {
                     VIRTUAL ACCOUNT MANAGEMENT FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    // @audit info tested by me
+    // @audit-info info tested by me
     /// @inheritdoc IRootPort
     function fetchVirtualAccount(address _user) external override returns (VirtualAccount account) {
         account = getUserAccount[_user];
@@ -366,7 +366,7 @@ contract RootPort is Ownable, IRootPort {
      */
 
     // @audit-info tested by me: 1 QA found
-    // @audit best practice not followed for internal function name
+    // @audit-info best practice not followed for internal function name
     function addVirtualAccount(address _user) internal returns (VirtualAccount newAccount) {
         if (_user == address(0)) revert InvalidUserAddress();
 
@@ -496,8 +496,8 @@ contract RootPort is Ownable, IRootPort {
     }
 
     // @audit-info tokens that are tokens that governance adds to the system and don't have underlying token address in any branch
-    // @audit what someone has added a local token already with that eco token. that means no
-    // this function will give DoS. is this true?
+    // @audit-info what someone has added a local token already with that eco token. that means no
+    // this function will give DoS. is this true: expected behaviour
     /// @inheritdoc IRootPort
     function addEcosystemToken(address _ecoTokenGlobalAddress) external override onlyOwner {
         // Check if token already added
@@ -524,7 +524,7 @@ contract RootPort is Ownable, IRootPort {
         emit EcosystemTokenAdded(_ecoTokenGlobalAddress);
     }
 
-    // @audit tested by team
+    // @audit-info tested by team
     /// @inheritdoc IRootPort
     function setCoreRootRouter(address _coreRootRouter, address _coreRootBridgeAgent) external override onlyOwner {
         if (_coreRootRouter == address(0)) revert InvalidCoreRootRouter();
@@ -537,7 +537,7 @@ contract RootPort is Ownable, IRootPort {
         emit CoreRootSet(_coreRootRouter, _coreRootBridgeAgent);
     }
 
-    // @audit tested by team
+    // @audit-info tested by team
     /// @inheritdoc IRootPort
     function setCoreBranchRouter(
         address _refundee,
@@ -556,7 +556,7 @@ contract RootPort is Ownable, IRootPort {
         emit CoreBranchSet(_coreBranchRouter, _coreBranchBridgeAgent, _dstChainId);
     }
 
-    // @audit tested by team
+    // @audit-info tested by team
     /// @inheritdoc IRootPort
     function syncNewCoreBranchRouter(address _coreBranchRouter, address _coreBranchBridgeAgent, uint16 _dstChainId)
         external

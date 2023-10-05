@@ -439,7 +439,7 @@ contract RootBridgeAgent is IRootBridgeAgent, BridgeAgentConstants {
     }
 
     /// @inheritdoc IRootBridgeAgent
-    // @audit make it modularized. need to check in known issues
+    // @audit-info make it modularized. need to check in known issues: non issue
     function lzReceiveNonBlocking(
         address _endpoint,
         uint16 _srcChainId,
@@ -769,7 +769,7 @@ contract RootBridgeAgent is IRootBridgeAgent, BridgeAgentConstants {
         executionState[_srcChainId][_depositNonce] = STATUS_DONE;
 
         //Try to execute the remote request
-        // @audit will it only hold tokens equal to the ETH balance
+        // @audit-info will it only hold tokens equal to the ETH balance: yup
         (bool success,) = bridgeAgentExecutorAddress.call{value: address(this).balance}(_calldata);
 
         // No fallback is requested revert allowing for retry.
@@ -851,7 +851,7 @@ contract RootBridgeAgent is IRootBridgeAgent, BridgeAgentConstants {
 
             // Check if call to local chain
         } else {
-            // @audit would we be able to add global token to the same chain from which we sent call
+            // @audit-info would we be able to add global token to the same chain from which we sent call
             //Send Gas to Local Branch Bridge Agent
             callee.call{value: msg.value}("");
             //Execute locally

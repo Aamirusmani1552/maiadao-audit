@@ -169,7 +169,7 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
         view
         returns (uint256 _fee)
     {
-        // @audit should we need to check what else it returns?
+        // @audit-info should we need to check what else it returns: no since only native tokens will be used for gas gee
         (_fee,) = ILayerZeroEndpoint(lzEndpointAddress).estimateFees(
             rootChainId,
             address(this),
@@ -193,7 +193,7 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
         lock
         requiresRouter
     {
-        // @audit can this encode packing cause issue?
+        // @audit-info can this encode packing cause issue?
         //Encode Data for cross-chain call.
         // 0 -> means system call
         // @audit-info packed like this: 0x00 + 0x11111111 + 0x02 + loosleyPacked(params)
@@ -206,7 +206,7 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
     }
 
     /// @inheritdoc IBranchBridgeAgent
-    // @audit should be called by router only. right now anyone can call it
+    // @audit-info should be called by router only. right now anyone can call it: no need since the calldata will be sent as it is. this will also revert when gas is not paid
     // @audit-info payload recieved:
     // 1. addGlobalToken: 0x01 + loosleyPacked(params)
     // 2. _addGlobalToken : 0x01 + loosleyPacked(params)
@@ -228,7 +228,7 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
     }
 
     /// @inheritdoc IBranchBridgeAgent
-    // @audit why it is allowed that anyone can interact with it
+    // @audit-info why it is allowed that anyone can interact with it. not needed
     function callOutAndBridge(
         address payable _refundee,
         bytes calldata _params,
@@ -251,7 +251,7 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
     }
 
     /// @inheritdoc IBranchBridgeAgent
-    // @audit should there be check as well
+    // @audit-info should there be check as well - not needed as well
     function callOutAndBridgeMultiple(
         address payable _refundee,
         bytes calldata _params,
@@ -519,7 +519,6 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
     }
 
     /// @inheritdoc IBranchBridgeAgent
-    // @audit _clear Token not called. is it necessary in this case as well?
     function clearTokens(bytes calldata _sParams, address _recipient)
         external
         override
@@ -541,7 +540,7 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
         uint256[] memory _deposits = new uint256[](numOfAssets);
 
         // Transfer the token to the recipient
-        // @audit no need to initialize the variable i
+        // @audit-info no need to initialize the variable i: added successfully
         for (uint256 i = 0; i < numOfAssets;) {
             // Cache common offset
             uint256 currentIterationOffset = PARAMS_START + i;
@@ -831,7 +830,6 @@ contract BranchBridgeAgent is IBranchBridgeAgent, BridgeAgentConstants {
      */
     function _performFallbackCall(address payable _refundee, uint32 _settlementNonce) internal virtual {
         //Sends message to LayerZero messaging layer
-        // @audit return value not checked
         ILayerZeroEndpoint(lzEndpointAddress).send{value: address(this).balance}(
             rootChainId,
             rootBridgeAgentPath,

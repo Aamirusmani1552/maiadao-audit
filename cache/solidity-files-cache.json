@@ -4697,8 +4697,8 @@
       }
     },
     "test/ulysses-omnichain/RootForkTest.t.sol": {
-      "lastModificationDate": 1696434431641,
-      "contentHash": "8e0dd2b545176a3edb08894460561d11",
+      "lastModificationDate": 1696485814086,
+      "contentHash": "8b802f901d018f315ea0a034bb266601",
       "sourceName": "test/ulysses-omnichain/RootForkTest.t.sol",
       "solcConfig": {
         "settings": {
@@ -4835,6 +4835,9 @@
         },
         "MockPortStartegy": {
           "0.8.19+commit.7dd6d404.Windows.msvc": "RootForkTest.t.sol\\MockPortStartegy.json"
+        },
+        "MultiCallEnvironmentTest": {
+          "0.8.19+commit.7dd6d404.Windows.msvc": "RootForkTest.t.sol\\MultiCallEnvironmentTest.json"
         },
         "RootForkTest": {
           "0.8.19+commit.7dd6d404.Windows.msvc": "RootForkTest.t.sol\\RootForkTest.json"
@@ -5599,8 +5602,8 @@
       }
     },
     "test/ulysses-omnichain/helpers/ERC20hTokenRootFactoryHelper.t.sol": {
-      "lastModificationDate": 1695492210722,
-      "contentHash": "8bd9dce7bd5eee475dd4d7de6700dc8a",
+      "lastModificationDate": 1696484477175,
+      "contentHash": "d1239aa6516714b62c59daca686405bc",
       "sourceName": "test/ulysses-omnichain/helpers/ERC20hTokenRootFactoryHelper.t.sol",
       "solcConfig": {
         "settings": {
@@ -6352,8 +6355,8 @@
       }
     },
     "test/ulysses-omnichain/helpers/RootForkHelper.t.sol": {
-      "lastModificationDate": 1695492210723,
-      "contentHash": "5cc2d95ad1e50bb531c28293d885f3f7",
+      "lastModificationDate": 1696484545376,
+      "contentHash": "1d071c90575439a4642fcd0d4545af01",
       "sourceName": "test/ulysses-omnichain/helpers/RootForkHelper.t.sol",
       "solcConfig": {
         "settings": {
@@ -6488,8 +6491,8 @@
       }
     },
     "test/ulysses-omnichain/helpers/RootPortHelper.t.sol": {
-      "lastModificationDate": 1695492210723,
-      "contentHash": "f66deb8a69b708227fedb487674c3f91",
+      "lastModificationDate": 1696484299033,
+      "contentHash": "c54ce56cad803b2b1c5606fe382f75f2",
       "sourceName": "test/ulysses-omnichain/helpers/RootPortHelper.t.sol",
       "solcConfig": {
         "settings": {

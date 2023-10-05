@@ -9,7 +9,7 @@ import {IArbitrumBranchPort as IPort} from "./interfaces/IArbitrumBranchPort.sol
 
 import {CoreBranchRouter} from "./CoreBranchRouter.sol";
 
-// @audit mistake is is used twice on line 20
+// @audit-info mistake is is used twice on line 20
 /**
  * @title  Arbitrum Core Branch Router Contract
  * @author MaiaDAO
@@ -52,7 +52,6 @@ contract ArbitrumCoreBranchRouter is CoreBranchRouter {
     // @audit can i add a malicious token and get back any different token
     function addLocalToken(address _underlyingAddress, GasParams calldata) external payable override {
         //Encode Data, no need to create local token since we are already in the global environment
-        // @audit will the string be decoded correctly on root chain
         bytes memory params = abi.encode(
             _underlyingAddress,
             address(0), // Address of the local token
