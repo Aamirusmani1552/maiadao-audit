@@ -1476,8 +1476,8 @@
       }
     },
     "src/ArbitrumBranchBridgeAgent.sol": {
-      "lastModificationDate": 1695875484459,
-      "contentHash": "d25f5f300862a0ce2b77314b4185659f",
+      "lastModificationDate": 1696487646416,
+      "contentHash": "3d79747ad2644680f2c7c8f212edd499",
       "sourceName": "src/ArbitrumBranchBridgeAgent.sol",
       "solcConfig": {
         "settings": {
@@ -1537,8 +1537,8 @@
       }
     },
     "src/ArbitrumBranchPort.sol": {
-      "lastModificationDate": 1696192815693,
-      "contentHash": "20ab20f848119f15a31ca979d819dba9",
+      "lastModificationDate": 1696487799903,
+      "contentHash": "3120c3c0710173a45e35f86105a57ec5",
       "sourceName": "src/ArbitrumBranchPort.sol",
       "solcConfig": {
         "settings": {
@@ -1601,8 +1601,8 @@
       }
     },
     "src/ArbitrumCoreBranchRouter.sol": {
-      "lastModificationDate": 1695989459265,
-      "contentHash": "3378472fce9f56c2aa840f5e03764795",
+      "lastModificationDate": 1696488991502,
+      "contentHash": "9249da08cadfc17a3ce2912090a41c3c",
       "sourceName": "src/ArbitrumCoreBranchRouter.sol",
       "solcConfig": {
         "settings": {
@@ -1659,8 +1659,8 @@
       }
     },
     "src/BaseBranchRouter.sol": {
-      "lastModificationDate": 1696230341374,
-      "contentHash": "205e1028390bc264c6350e32206c5368",
+      "lastModificationDate": 1696489585419,
+      "contentHash": "51658c9726f6d57bb46ff770b8fc2550",
       "sourceName": "src/BaseBranchRouter.sol",
       "solcConfig": {
         "settings": {
@@ -1708,8 +1708,8 @@
       }
     },
     "src/BranchBridgeAgent.sol": {
-      "lastModificationDate": 1696230330883,
-      "contentHash": "aadc524008ddf37211363a221a899b61",
+      "lastModificationDate": 1696491289107,
+      "contentHash": "1ab04a1e76268b953472bbf469f06527",
       "sourceName": "src/BranchBridgeAgent.sol",
       "solcConfig": {
         "settings": {
@@ -1826,8 +1826,8 @@
       }
     },
     "src/BranchPort.sol": {
-      "lastModificationDate": 1696402963142,
-      "contentHash": "28b86034ec613800ed09ad7481f93be5",
+      "lastModificationDate": 1696491430195,
+      "contentHash": "2fc79868d6878d358c16174ab871335d",
       "sourceName": "src/BranchPort.sol",
       "solcConfig": {
         "settings": {
@@ -1876,8 +1876,8 @@
       }
     },
     "src/CoreBranchRouter.sol": {
-      "lastModificationDate": 1696274666780,
-      "contentHash": "ebc80a195b3a6866a0ad71b68f8e60c7",
+      "lastModificationDate": 1696491479030,
+      "contentHash": "65800f5b84f44ff95ec2d6485be55162",
       "sourceName": "src/CoreBranchRouter.sol",
       "solcConfig": {
         "settings": {
@@ -1932,8 +1932,8 @@
       }
     },
     "src/CoreRootRouter.sol": {
-      "lastModificationDate": 1696276330722,
-      "contentHash": "4e929f2e9cf10355bae73da928bae4ce",
+      "lastModificationDate": 1696515726830,
+      "contentHash": "3ae5afa29d15ba1b2f1ebbe9fa2c8a9d",
       "sourceName": "src/CoreRootRouter.sol",
       "solcConfig": {
         "settings": {
@@ -2097,8 +2097,8 @@
       }
     },
     "src/RootBridgeAgent.sol": {
-      "lastModificationDate": 1696274180742,
-      "contentHash": "ff584d99134d254002c0a6819614774b",
+      "lastModificationDate": 1696515835808,
+      "contentHash": "ddd0af5f931255c97516c6375adf8f66",
       "sourceName": "src/RootBridgeAgent.sol",
       "solcConfig": {
         "settings": {
@@ -2163,8 +2163,8 @@
       }
     },
     "src/RootBridgeAgentExecutor.sol": {
-      "lastModificationDate": 1696260612857,
-      "contentHash": "1658067c2c264e5dabaaecc8fd504401",
+      "lastModificationDate": 1696515864063,
+      "contentHash": "aa7525a21e930b594b207d09a0ea64cd",
       "sourceName": "src/RootBridgeAgentExecutor.sol",
       "solcConfig": {
         "settings": {
@@ -2232,8 +2232,8 @@
       }
     },
     "src/RootPort.sol": {
-      "lastModificationDate": 1696317240104,
-      "contentHash": "59117e304c092c7919cace7a1fafcbf1",
+      "lastModificationDate": 1696516206267,
+      "contentHash": "24e4178111a3d11638462755d2b409a4",
       "sourceName": "src/RootPort.sol",
       "solcConfig": {
         "settings": {
@@ -2408,8 +2408,8 @@
       }
     },
     "src/factories/BranchBridgeAgentFactory.sol": {
-      "lastModificationDate": 1695537114101,
-      "contentHash": "1031b9f245aadc6a04f93c6509d2e674",
+      "lastModificationDate": 1696516232138,
+      "contentHash": "e6eb8ff1c45fc72a89d67f4fb6f6c309",
       "sourceName": "src/factories/BranchBridgeAgentFactory.sol",
       "solcConfig": {
         "settings": {
@@ -2836,8 +2836,8 @@
       }
     },
     "src/interfaces/IBranchPort.sol": {
-      "lastModificationDate": 1696335095120,
-      "contentHash": "5709632b30de0ddb284afbaa844fc6c6",
+      "lastModificationDate": 1696519371660,
+      "contentHash": "19d9defaa81fcb5574f9b1edab065761",
       "sourceName": "src/interfaces/IBranchPort.sol",
       "solcConfig": {
         "settings": {
@@ -2922,8 +2922,8 @@
       }
     },
     "src/interfaces/ICoreBranchRouter.sol": {
-      "lastModificationDate": 1695665409624,
-      "contentHash": "62eff72aeed4502ece017dbdda3c1f02",
+      "lastModificationDate": 1696488833614,
+      "contentHash": "0a72da4a3a3aa70137c8aa7e6a4642c6",
       "sourceName": "src/interfaces/ICoreBranchRouter.sol",
       "solcConfig": {
         "settings": {
@@ -3624,8 +3624,8 @@
       }
     },
     "src/token/ERC20hTokenRoot.sol": {
-      "lastModificationDate": 1695538329146,
-      "contentHash": "f12c6d5cbdb70d54139e5da2702f244a",
+      "lastModificationDate": 1696519674167,
+      "contentHash": "f5b5cb17681dd7fe45f0dfe8fb04a4a6",
       "sourceName": "src/token/ERC20hTokenRoot.sol",
       "solcConfig": {
         "settings": {
@@ -6355,7 +6355,7 @@
       }
     },
     "test/ulysses-omnichain/helpers/RootForkHelper.t.sol": {
-      "lastModificationDate": 1696484545376,
+      "lastModificationDate": 1696570101212,
       "contentHash": "1d071c90575439a4642fcd0d4545af01",
       "sourceName": "test/ulysses-omnichain/helpers/RootForkHelper.t.sol",
       "solcConfig": {
